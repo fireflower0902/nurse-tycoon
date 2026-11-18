@@ -1,0 +1,10 @@
+{
+  "name": "간호사 타이쿤: 오늘도 칼퇴 실패",
+  "short_name": "간호사 타이쿤",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e9f5f2",
+  "theme_color": "#2bb5a0",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

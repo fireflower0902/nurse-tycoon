@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#d9efe9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="간호사 타이쿤" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>간호사 타이쿤: 오늘도 칼퇴 실패</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="hud-card">
+        <div class="day-block"><small>DAY</small><b id="day">1</b></div>
+        <div class="time-block">
+          <div class="time-row">
+            <b id="clock">09:00</b>
+            <span id="phase" class="phase">진료 중</span>
+          </div>
+          <div class="timeline"><i id="timeline-fill"></i><span class="tl-mark lunch" title="점심"></span><span class="tl-mark close" title="접수 마감"></span></div>
+        </div>
+        <div class="stat-chip money"><span class="won-badge" data-icon="won"></span><b id="money">0</b></div>
+        <div class="stat-chip rating"><span data-icon="star"></span><b id="rating">3.0</b></div>
+        <div class="hud-btns">
+          <button id="btn-help" class="round-btn" aria-label="도움말"><span data-icon="help"></span></button>
+          <button id="btn-pause" class="round-btn" aria-label="일시정지"><span data-icon="pause"></span></button>
+        </div>
+      </div>
+      <div class="vitals">
+        <div class="vital hunger" id="g-hunger">
+          <span class="v-ic" data-icon="bowl"></span>
+          <div class="v-body"><div class="v-top"><span>식사</span><em>100</em></div><b><i></i></b></div>
+        </div>
+        <div class="vital bladder" id="g-bladder">
+          <span class="v-ic" data-icon="toilet"></span>
+          <div class="v-body"><div class="v-top"><span>화장실</span><em>100</em></div><b><i></i></b></div>
+        </div>
+        <div class="vital stamina" id="g-stamina">
+          <span class="v-ic" data-icon="battery"></span>
+          <div class="v-body"><div class="v-top"><span>체력</span><em>100</em></div><b><i></i></b></div>
+        </div>
+        <div class="vital mental" id="g-mental">
+          <span class="v-ic" data-icon="heart"></span>
+          <div class="v-body"><div class="v-top"><span>멘탈</span><em>100</em></div><b><i></i></b></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="map">
+      <div id="stage"></div>
+      <div id="ov"></div>
+      <div id="combo"></div>
+      <div class="zoom-ctl">
+        <button id="zoom-in" aria-label="확대"><span data-icon="plus"></span></button>
+        <button id="zoom-out" aria-label="축소"><span data-icon="minus"></span></button>
+        <button id="zoom-reset" aria-label="전체 보기"><span data-icon="expand"></span></button>
+      </div>
+      <div id="toasts"></div>
+      <div id="hint" class="hidden"></div>
+      <div id="loading">의원 짓는 중…</div>
+    </main>
+
+    <footer id="bottom">
+      <div class="dock">
+        <div class="dock-row">
+          <span class="dock-label">할 일</span>
+          <div id="queue"></div>
+        </div>
+        <div class="dock-row">
+          <div class="tray">
+            <div class="tray-head"><span data-icon="tray"></span>처치 트레이 <em id="tray-count">0/2</em></div>
+            <div class="tray-slots">
+              <button class="hand" data-h="0"></button>
+              <button class="hand" data-h="1"></button>
+            </div>
+          </div>
+          <div class="mode">
+            <div class="mode-head">환자 확인</div>
+            <div class="seg" id="btn-check">
+              <button data-mode="safe" class="on"><span data-icon="shield"></span>꼼꼼히</button>
+              <button data-mode="fast"><span data-icon="bolt"></span>빠르게</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 시작 화면 -->
+  <div id="screen-start" class="screen">
+    <div class="card">
+      <div class="brand-mark" data-icon="cross"></div>
+      <p class="eyebrow">STAGE 1 · 햇살내과의원</p>
+      <h1>간호사 타이쿤</h1>
+      <p class="sub">오늘도 칼퇴 실패</p>
+      <ul class="howto">
+        <li><span data-icon="tap"></span><div><b>환자를 탭해서 일 시키기</b><small>간호사가 뛰어가서 처리 · 최대 5개 예약</small></div></li>
+        <li><span data-icon="syringe"></span><div><b>주사·수액은 약품장에서 먼저</b><small>손은 두 개뿐이에요</small></div></li>
+        <li><span data-icon="bell"></span><div><b>침대가 깜빡이면 정리</b><small>수액·핫팩이 끝났다는 신호</small></div></li>
+        <li><span data-icon="heart"></span><div><b>내 몸과 멘탈도 챙기기</b><small>식사·화장실·체력·멘탈이 바닥나면 느려져요</small></div></li>
+        <li><span data-icon="clipboard"></span><div><b>기록은 그때그때</b><small>밀린 기록은 퇴근 후 무급 야근이 돼요</small></div></li>
+        <li><span data-icon="pinch"></span><div><b>두 손가락으로 확대·이동</b><small>작은 환자도 정확하게 탭할 수 있어요</small></div></li>
+      </ul>
+      <button id="btn-start" class="primary">출근하기</button>
+      <button id="btn-howto" class="secondary"><span data-icon="help"></span>게임 방법 보기</button>
+      <button id="btn-reset" class="ghost">처음부터 다시</button>
+    </div>
+  </div>
+
+  <!-- 결과 화면 -->
+  <div id="screen-result" class="screen hidden">
+    <div class="card">
+      <p class="eyebrow" id="res-eyebrow">퇴근 기록</p>
+      <h2 id="res-title">DAY 1 퇴근</h2>
+      <div id="res-stats"></div>
+      <div id="res-badges"></div>
+      <div class="shop-head"><h3>의원 업그레이드</h3><span id="shop-money"></span></div>
+      <div id="shop"></div>
+      <button id="btn-next" class="primary">다음 날 출근</button>
+    </div>
+  </div>
+
+  <!-- 도움말 -->
+  <div id="screen-help" class="screen hidden">
+    <div class="card help">
+      <div class="help-top">
+        <h2>도움말</h2>
+        <button id="btn-help-close" class="round-btn" aria-label="닫기"><span data-icon="x"></span></button>
+      </div>
+      <div class="tabs" id="help-tabs">
+        <button data-tab="basic" class="on">기본 조작</button>
+        <button data-tab="flow">환자 흐름</button>
+        <button data-tab="icons">아이콘</button>
+        <button data-tab="real">간호사의 현실</button>
+      </div>
+      <div class="tab-body" data-tab="basic">
+        <div class="hrow"><span data-icon="tap"></span><div><b>탭해서 일 시키기</b><p>환자·침대·시설 버튼을 탭하면 간호사가 뛰어가서 처리해요. 최대 5개까지 순서대로 예약되고, 아래 '할 일' 칩을 탭하면 취소돼요.</p></div></div>
+        <div class="hrow"><span data-icon="pinch"></span><div><b>확대 · 이동</b><p>두 손가락으로 벌리면 확대, 드래그하면 이동해요. 오른쪽 위 +/− 버튼과 전체 보기 버튼도 있어요.</p></div></div>
+        <div class="hrow"><span data-icon="tray"></span><div><b>처치 트레이(손 2개)</b><p>주사·수액은 약품장에서 먼저 챙겨야 해요. 트레이는 두 칸뿐! 칸을 탭하면 내려놓아요.</p></div></div>
+        <div class="hrow"><span data-icon="shield"></span><div><b>환자 확인 모드</b><p><b>꼼꼼히</b>: 이름·생년월일 확인으로 조금 느리지만 안전. <b>빠르게</b>: 시간은 아끼지만 투약 사고 위험이 있고, 지칠수록 위험이 커져요.</p></div></div>
+        <div class="hrow"><span data-icon="battery"></span><div><b>내 몸 게이지</b><p>식사·화장실·체력·멘탈이 바닥나면 느려지고 실수가 늘어요. 탕비실의 화장실·간식으로 회복하세요.</p></div></div>
+        <div class="hrow"><span data-icon="clock"></span><div><b>하루 일과</b><p>09:00~18:00 (실제 3분). 17:30 접수 마감, 18:00 이후 남은 환자와 기록은 전부 야근이에요.</p></div></div>
+      </div>
+      <div class="tab-body hidden" data-tab="flow">
+        <ol class="flow">
+          <li><span data-icon="door"></span><div><b>대기실</b><p>환자를 탭 → 접수대에서 접수</p></div></li>
+          <li><span data-icon="stetho"></span><div><b>진료실</b><p>원장님이 자동으로 진료하고 처방을 내려요</p></div></li>
+          <li><span data-icon="syringe"></span><div><b>처치 대기</b><p>주사·수액은 약품장에서 챙긴 뒤 환자 탭, 핫팩은 바로 탭</p></div></li>
+          <li><span data-icon="bell"></span><div><b>수액실 · 물리치료실</b><p>침대가 빨갛게 깜빡이면 탭해서 정리</p></div></li>
+          <li><span data-icon="card"></span><div><b>수납</b><p>환자를 탭해서 수납. 서류 아이콘은 실비 서류까지 발급</p></div></li>
+          <li><span data-icon="clipboard"></span><div><b>기록</b><p>처치할 때마다 기록이 쌓여요. 접수대 '기록' 버튼으로 정리하지 않으면 퇴근 후 무급 야근!</p></div></li>
+        </ol>
+        <div class="tipbox"><span data-icon="sparkle"></span><p>연달아 빠르게 처리하면 <b>콤보</b>! 수입이 최대 2배까지 올라가요.</p></div>
+      </div>
+      <div class="tab-body hidden" data-tab="icons">
+        <div class="icon-grid">
+          <div><span class="badge-ic shot" data-icon="syringe"></span>주사 처방</div>
+          <div><span class="badge-ic iv" data-icon="iv"></span>수액 처방</div>
+          <div><span class="badge-ic heat" data-icon="flame"></span>핫팩 처방</div>
+          <div><span class="badge-ic exam" data-icon="stetho"></span>진료 중</div>
+          <div><span class="badge-ic bell" data-icon="bell"></span>처치 끝, 정리 필요</div>
+          <div><span class="badge-ic pay" data-icon="card"></span>수납 대기</div>
+          <div><span class="badge-ic doc" data-icon="doc"></span>실비 서류 요청</div>
+          <div><span class="badge-ic rude" data-icon="angry"></span>진상 환자 (멘탈↓)</div>
+          <div><span class="badge-ic alert" data-icon="heartPulse"></span>흉통! 즉시 119</div>
+          <div><span class="badge-ic errand" data-icon="stetho"></span>원장님 호출</div>
+        </div>
+        <p class="note">환자 머리 위 막대는 <b>인내심</b>이에요. 빨개지면 곧 화내며 떠나요.</p>
+      </div>
+      <div class="tab-body hidden" data-tab="real">
+        <p class="lead">이 게임의 고단함은 실제 조사 결과를 바탕으로 만들었어요.</p>
+        <div class="fact"><b>19.5명</b><p>병동 간호사 1명이 맡는 환자 수(2016). OECD 최고 수준이지만 법적 기준이 없어요.</p><small>머니투데이 · 프레시안</small></div>
+        <div class="fact"><b>81.5~92.8%</b><p>근무 중 간호 업무를 하나 이상 끝내지 못한 간호사 비율 → 게임 속 <em>밀린 기록</em></p><small>대한간호학회지</small></div>
+        <div class="fact"><b>하루 2~3시간</b><p>수당 없는 초과 근무가 비일비재. 인계 후 남은 일은 '역량 부족' 취급 → 게임 속 <em>무급 야근</em></p><small>노컷뉴스 · 메디게이트뉴스</small></div>
+        <div class="fact"><b>66.2%</b><p>의사 업무까지 요구받은 경험 → 게임 속 <em>원장님 호출</em></p><small>데일리팜</small></div>
+        <div class="fact"><b>81.0%</b><p>인권침해 유형 중 폭언 비율, 피해 후 71.8%는 '무대응' → 게임 속 <em>진상 환자 · 멘탈</em></p><small>메디칼타임즈(2025, 간협 조사)</small></div>
+        <div class="fact"><b>72.1%</b><p>3개월 내 이직을 고려한 간호사 비율(2026)</p><small>데일리안 · 보건의료노조</small></div>
+        <div class="fact"><b>휴게시간 미준수</b><p>밥도 화장실도 못 가는 12시간 → 게임 속 <em>식사·화장실 게이지, 휴게시간 정산</em></p><small>머니투데이 · 메디게이트뉴스</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 일시정지 -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="card small">
+      <div class="brand-mark soft" data-icon="pause"></div>
+      <h2>잠깐 숨 돌리는 중</h2>
+      <button id="btn-resume" class="primary">계속하기</button>
+      <button id="btn-help2" class="secondary"><span data-icon="help"></span>도움말</button>
+      <button id="btn-quit" class="ghost">타이틀로</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
