@@ -3,7 +3,9 @@
 한국 간호사의 바쁜 하루를 그린 **모바일 3D 시간관리 타이쿤 게임** PoC입니다.
 플레이어는 병원장이 아니라 **간호사 본인**이에요. 손(트레이)은 2개뿐이고, 밥·화장실·멘탈도 챙겨야 합니다.
 
-![게임 화면](screenshots/04-busy.png)
+![간호사 타이쿤](og-image.png)
+
+### ▶ [지금 플레이하기](https://fireflower0902.github.io/nurse-tycoon/)
 
 ## ▶ 플레이
 - **GitHub Pages**: https://fireflower0902.github.io/nurse-tycoon/ (모바일 세로 화면 권장)

@@ -6,5 +6,27 @@
   "orientation": "portrait",
   "background_color": "#e9f5f2",
   "theme_color": "#2bb5a0",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "description": "밥도 화장실도 못 가고 뛰어다니는 한국 간호사의 하루를 버텨보는 3D 모바일 타이쿤 게임",
+  "lang": "ko",
+  "categories": [
+    "games"
+  ]
 }
