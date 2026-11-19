@@ -3,8 +3,8 @@
  * Three.js (CDN importmap), 빌드 없음. 모바일 세로 화면 기준.
  * ========================================================= */
 import * as THREE from 'three';
-import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=15';
-import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=15';
+import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=16';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=16';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -313,6 +313,7 @@ const leadPatrol = () => [R('desk', 1.7, -0.4, { rot: Math.PI }), R('desk', 1.9,
   box(0.85, 0.12, 1.75, '#9ad0e6', b.x, 0.56, b.z, world);
   plant(R('exam', -2.4, 2.4));
 }
+let cabinetHit = null;
 // 약품장
 {
   const s = R('cabinet', 0, -2.45);
@@ -322,6 +323,8 @@ const leadPatrol = () => [R('desk', 1.7, -0.4, { rot: Math.PI }), R('desk', 1.9,
   for (let i = 0; i < 14; i++) box(0.22, 0.28, 0.2, cols[i % cols.length], s.x - 2.1 + (i % 7) * 0.7, i < 7 ? 0.65 : 1.25, s.z, world);
   const t = R('cabinet', 0.2, -0.9);
   box(2.6, 0.75, 0.7, '#d7e7e3', t.x, 0.375, t.z, world);
+  cabinetHit = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.2, 2.6), new THREE.MeshBasicMaterial());
+  cabinetHit.visible = false; cabinetHit.position.set(R('cabinet', 0, -1.6).x, 1.0, R('cabinet', 0, -1.6).z); world.add(cabinetHit);
   Object.values(MEDS).forEach((m, i) => box(0.36, 0.22, 0.4, m.color, t.x - 1.0 + i * 0.5, 0.86, t.z, world));
 }
 // 주사실
@@ -463,6 +466,7 @@ const guard = (fn) => () => { if (playing()) fn(); };
 const cabBtn = stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot', '#rail-right');
 stationBtn(`<span class="pin">${icon('toilet')}</span><small>화장실</small>`, R('pantry', 1.5, -2.1), 1.3, guard(() => enqueue(player, { kind: 'toilet' })), 'toilet', '#rail-right');
 const snackBtn = stationBtn(`<span class="pin">${icon('onigiri')}</span><small>간식</small>`, R('pantry', -0.8, -2.4), 1.3, guard(() => enqueue(player, { kind: 'snack' })), 'snack', '#rail-right');
+stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 1.75, -1.75), 1.15, guard(() => openCabinet()), 'shot mini');
 const chartBtn = stationBtn(`<span class="pin">${icon('clipboard')}<span class="chart-count"></span></span><small>기록</small>`, MON_POS, 1.55, guard(() => {
   if (!S.charts) { toast('📋 밀린 기록이 없어요'); return; }
   enqueue(player, { kind: 'chart' });
@@ -619,16 +623,17 @@ function handleTap(cx, cy) {
   const r = cvs.getBoundingClientRect();
   ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const targets = [phoneMesh];
+  const targets = [phoneMesh, cabinetHit];
   if (doctor) targets.push(doctor.hit);
   for (const p of S.patients.values()) targets.push(p.ch.hit);
   for (const b of S.beds) targets.push(b.hit);
   const hits = raycaster.intersectObjects(targets, true);
   for (const h of hits) {
     let o = h.object;
-    while (o && !o.userData.hit && o !== phoneMesh) o = o.parent;
+    while (o && !o.userData.hit && o !== phoneMesh && o !== cabinetHit) o = o.parent;
     if (!o) continue;
     if (o === phoneMesh) { phoneBtn.click(); return true; }
+    if (o === cabinetHit) { openCabinet(); return true; }
     const info = o.userData.hit;
     if (info.type === 'doctor') { if (S.errand) enqueue(player, { kind: 'errand' }); else toast('🧑‍⚕️ 원장님은 진료 중이에요'); return true; }
     if (info.type === 'patient') { onPatientTap(info.id); return true; }
@@ -831,7 +836,7 @@ function newDay(doc) {
   phoneBtn.classList.remove('ringing');
   errandOv.style.display = 'none'; choreOv.style.display = 'none';
   setTimeout(() => toast('🕘 08:30 조기 출근 · 인계받은 30분은 근무시간에 안 쳐줘요'), 400);
-  hint('first', '👆 번호표를 뽑고 앉은 환자를 탭하면 데스크에서 접수해요. 동료 간호사들도 알아서 같이 일해요!');
+  hint('first', '👆 번호표를 뽑고 앉은 환자를 탭하면 데스크에서 접수해요. 노란 화살표가 나예요!');
 }
 
 // ================= 환자 =================
@@ -1987,8 +1992,8 @@ function animateWorld(dt, t) {
   easeCamera(dt);
   // 내 위치 · 팀장 위치 화살표 (항상 표시)
   const bob = Math.abs(Math.sin(t * 3.2)) * 0.22;
-  if (S && player.ch.g.visible) { meArrow.style.display = ''; placeOv(meArrow, player.pos.x, 2.5 + bob, player.pos.z); } else meArrow.style.display = 'none';
-  if (S && lead && lead.ch.g.visible) { leadArrow.style.display = ''; placeOv(leadArrow, lead.pos.x, 2.5 + bob * 0.6, lead.pos.z); } else leadArrow.style.display = 'none';
+  if (S && player.ch.g.visible) { meArrow.style.display = ''; placeOv(meArrow, player.pos.x, 2.25 + bob * 0.6, player.pos.z); } else meArrow.style.display = 'none';
+  if (S && lead && lead.ch.g.visible) { leadArrow.style.display = ''; placeOv(leadArrow, lead.pos.x, 2.25 + bob * 0.4, lead.pos.z); } else leadArrow.style.display = 'none';
   if (S) {
     for (const a of allActors()) {
       if (a !== player && a.state === 'lunch' && a.path.length) stepAlong(a, dt, NURSE_SPEED * 0.7);
