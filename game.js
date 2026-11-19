@@ -3,8 +3,8 @@
  * Three.js (CDN importmap), 빌드 없음. 모바일 세로 화면 기준.
  * ========================================================= */
 import * as THREE from 'three';
-import { icon, hydrateIcons, EMOJI_ICON } from './icons.js';
-import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js';
+import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=9';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=9';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -2466,6 +2466,8 @@ function speakLine(who, text, onEnd) {
   const fin = () => { if (!fired) { fired = true; onEnd && onEnd(true); } };
   u.onend = fin; u.onerror = fin;
   speechSynthesis.speak(u);
+  try { speechSynthesis.resume(); } catch (_) {}
+  CS.voiceTried = true;
 }
 function renderMute() {
   const b = $('#cs-mute');
@@ -2733,6 +2735,11 @@ function playScene(story, done) {
   CS.steps = story.steps.slice();
   CS.i = -1; CS.t = 0; CS.done = done; CS.active = true; CS.speaker = null;
   $('#cs-title').textContent = story.title;
+  if (!save.muted && !CS.hintShown) {
+    CS.hintShown = true;
+    const h = $('#cs-sound-hint'); h.classList.remove('hidden');
+    setTimeout(() => h.classList.add('hidden'), 4500);
+  }
   const root = $('#cutscene');
   root.classList.remove('hidden'); root.classList.add('intro');
   setTimeout(() => root.classList.remove('intro'), 60);
@@ -2781,6 +2788,11 @@ function csEnd() {
 $('#cutscene').addEventListener('click', (e) => {
   if (e.target.closest('#cs-skip')) { if (!quiz.open) csEnd(); return; }
   if (!CS.active || quiz.open) return;
+  // iOS: 첫 탭에서 음성이 아직 안 나오면 현재 대사를 다시 읽어 음성을 깨움
+  if (!save.muted && 'speechSynthesis' in window && !CS.unlocked) {
+    CS.unlocked = true;
+    if (!speechSynthesis.speaking && CS.cur) { speakLine(CS.cur.who, CS.cur.text, () => { CS.spoken = true; }); CS.speakStart = performance.now(); CS.spoken = false; return; }
+  }
   if (CS.typing && CS.typing.n < CS.typing.text.length) { CS.typing.n = CS.typing.text.length; $('#cs-text').textContent = CS.typing.text; return; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   csNext();

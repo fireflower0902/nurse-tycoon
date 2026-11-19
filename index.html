@@ -36,7 +36,7 @@
   <link rel="apple-touch-icon" href="icon-180.png" />
   <title>간호사 타이쿤: 오늘도 칼퇴 실패 · 3D 모바일 타이쿤 게임</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=9" />
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
   </script>
@@ -281,7 +281,7 @@
   <div id="cutscene" class="hidden">
     <div id="cs-stage"></div>
     <div class="cs-bar top"></div><div class="cs-bar bottom"></div>
-    <div class="cs-head"><span id="cs-title"></span><span class="cs-btns"><button id="cs-mute" aria-label="음성 켜기/끄기"></button><button id="cs-skip">건너뛰기 ›</button></span></div>
+    <div class="cs-head"><span id="cs-title"></span><span class="cs-btns"><span id="cs-sound-hint" class="hidden">소리가 안 나면 무음 모드를 꺼 주세요</span><button id="cs-mute" aria-label="음성 켜기/끄기"></button><button id="cs-skip">건너뛰기 ›</button></span></div>
     <div id="cs-box"><b id="cs-who"></b><p id="cs-text"></p><span class="cs-next">탭해서 계속</span></div>
   </div>
 
@@ -308,6 +308,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js"></script>
+  <script type="module" src="game.js?v=9"></script>
 </body>
 </html>

@@ -633,3 +633,5 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 .po.by-mate .badge-ic { box-shadow: 0 0 0 2.5px #2f6fe4, 0 3px 8px rgba(21,48,43,.22); }
 .po.by-mate .bar { box-shadow: 0 0 0 1.5px #2f6fe4; }
 .badge-ic.mate { --c: #fff; background: #2f6fe4 !important; }
+
+#cs-sound-hint { align-self: center; font-size: 10.5px; font-weight: 700; color: #fff; background: rgba(0,0,0,.45); padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
