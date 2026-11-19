@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="간호사 타이쿤" />
-  <meta name="description" content="밥도 화장실도 못 가고 뛰어다니는 한국 간호사의 하루를 버텨보는 3D 모바일 타이쿤 게임. 주사·수액·핫팩 처치, 밀린 기록, 원장님 호출, 진상 환자까지 — 오늘도 칼퇴할 수 있을까?" />
+  <meta name="description" content="밥도 화장실도 못 가고 뛰어다니는 한국 간호사의 하루를 버텨보는 3D 모바일 타이쿤 게임. 번호표 접수, 주사·수액·채혈, 밀린 기록, 원장님 호출, 간호실장 태움까지 — 오늘도 칼퇴할 수 있을까?" />
   <meta name="keywords" content="간호사 게임, 간호사 타이쿤, 병원 게임, 타이쿤, 모바일 게임, 3D 게임, 간호사 현실" />
   <link rel="canonical" href="https://fireflower0902.github.io/nurse-tycoon/" />
 
@@ -18,7 +18,7 @@
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:url" content="https://fireflower0902.github.io/nurse-tycoon/" />
   <meta property="og:title" content="간호사 타이쿤: 오늘도 칼퇴 실패" />
-  <meta property="og:description" content="밥도 화장실도 못 가고 뛰어다니는 한국 간호사의 하루. 손은 두 개뿐, 기록은 밀리고, 원장님은 부르고… 3D 모바일 타이쿤으로 직접 버텨보세요." />
+  <meta property="og:description" content="밥도 화장실도 못 가고 뛰어다니는 한국 간호사의 하루. 손은 두 개뿐, 기록은 밀리고, 원장님은 부르고, 실장님은 지켜본다… 3D 모바일 타이쿤으로 직접 버텨보세요." />
   <meta property="og:image" content="https://fireflower0902.github.io/nurse-tycoon/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -51,32 +51,20 @@
             <b id="clock">09:00</b>
             <span id="phase" class="phase">진료 중</span>
           </div>
-          <div class="timeline"><i id="timeline-fill"></i><span class="tl-mark lunch" title="점심"></span><span class="tl-mark close" title="접수 마감"></span></div>
+          <div class="timeline"><i id="timeline-fill"></i><span class="tl-lunch" title="점심시간 13~14시"></span><span class="tl-mark close" title="접수 마감"></span></div>
         </div>
-        <div class="stat-chip money"><span class="won-badge" data-icon="won"></span><b id="money">0</b></div>
-        <div class="stat-chip rating"><span data-icon="star"></span><b id="rating">3.0</b></div>
+        <div class="stat-chip money" title="내 통장"><span class="won-badge" data-icon="won"></span><b id="money">0</b></div>
+        <div class="stat-chip rating" title="의원 평판"><span data-icon="star"></span><b id="rating">3.0</b></div>
         <div class="hud-btns">
           <button id="btn-help" class="round-btn" aria-label="도움말"><span data-icon="help"></span></button>
           <button id="btn-pause" class="round-btn" aria-label="일시정지"><span data-icon="pause"></span></button>
         </div>
       </div>
       <div class="vitals">
-        <div class="vital hunger" id="g-hunger">
-          <span class="v-ic" data-icon="bowl"></span>
-          <div class="v-body"><div class="v-top"><span>식사</span><em>100</em></div><b><i></i></b></div>
-        </div>
-        <div class="vital bladder" id="g-bladder">
-          <span class="v-ic" data-icon="toilet"></span>
-          <div class="v-body"><div class="v-top"><span>화장실</span><em>100</em></div><b><i></i></b></div>
-        </div>
-        <div class="vital stamina" id="g-stamina">
-          <span class="v-ic" data-icon="battery"></span>
-          <div class="v-body"><div class="v-top"><span>체력</span><em>100</em></div><b><i></i></b></div>
-        </div>
-        <div class="vital mental" id="g-mental">
-          <span class="v-ic" data-icon="heart"></span>
-          <div class="v-body"><div class="v-top"><span>멘탈</span><em>100</em></div><b><i></i></b></div>
-        </div>
+        <div class="vital hunger" id="g-hunger"><span class="v-ic" data-icon="bowl"></span><div class="v-body"><div class="v-top"><span>식사</span><em>100</em></div><b><i></i></b></div></div>
+        <div class="vital bladder" id="g-bladder"><span class="v-ic" data-icon="toilet"></span><div class="v-body"><div class="v-top"><span>화장실</span><em>100</em></div><b><i></i></b></div></div>
+        <div class="vital stamina" id="g-stamina"><span class="v-ic" data-icon="battery"></span><div class="v-body"><div class="v-top"><span>체력</span><em>100</em></div><b><i></i></b></div></div>
+        <div class="vital mental" id="g-mental"><span class="v-ic" data-icon="heart"></span><div class="v-body"><div class="v-top"><span>멘탈</span><em>100</em></div><b><i></i></b></div></div>
       </div>
     </header>
 
@@ -84,13 +72,14 @@
       <div id="stage"></div>
       <div id="ov"></div>
       <div id="combo"></div>
+      <div id="toasts"></div>
+      <div id="hint" class="hidden"></div>
       <div class="zoom-ctl">
         <button id="zoom-in" aria-label="확대"><span data-icon="plus"></span></button>
         <button id="zoom-out" aria-label="축소"><span data-icon="minus"></span></button>
         <button id="zoom-reset" aria-label="전체 보기"><span data-icon="expand"></span></button>
       </div>
-      <div id="toasts"></div>
-      <div id="hint" class="hidden"></div>
+      <div id="sheet" class="sheet hidden"></div>
       <div id="loading">의원 짓는 중…</div>
     </main>
 
@@ -103,24 +92,18 @@
         <div class="dock-row">
           <div class="tray">
             <div class="tray-head"><span data-icon="tray"></span>처치 트레이 <em id="tray-count">0/2</em></div>
-            <div class="tray-slots">
-              <button class="hand" data-h="0"></button>
-              <button class="hand" data-h="1"></button>
-            </div>
+            <div class="tray-slots" id="tray-slots"></div>
           </div>
-          <div class="mode">
-            <div class="mode-head">환자 확인</div>
-            <div class="seg" id="btn-check">
-              <button data-mode="safe" class="on"><span data-icon="shield"></span>꼼꼼히</button>
-              <button data-mode="fast"><span data-icon="bolt"></span>빠르게</button>
-            </div>
+          <div class="quick">
+            <button id="btn-choco" class="qbtn choco"><span data-icon="choco"></span><b>초코바</b><em id="choco-count">0</em></button>
+            <button id="btn-mates" class="qbtn mates"><span data-icon="users"></span><b>동료 요청</b><em id="mate-count">2</em></button>
           </div>
         </div>
       </div>
     </footer>
   </div>
 
-  <!-- 시작 화면 -->
+  <!-- 타이틀 -->
   <div id="screen-start" class="screen">
     <div class="card">
       <div class="brand-mark" data-icon="cross"></div>
@@ -129,11 +112,10 @@
       <p class="sub">오늘도 칼퇴 실패</p>
       <ul class="howto">
         <li><span data-icon="tap"></span><div><b>환자를 탭해서 일 시키기</b><small>간호사가 뛰어가서 처리 · 최대 5개 예약</small></div></li>
-        <li><span data-icon="syringe"></span><div><b>주사·수액은 약품장에서 먼저</b><small>손은 두 개뿐이에요</small></div></li>
-        <li><span data-icon="bell"></span><div><b>침대가 깜빡이면 정리</b><small>수액·핫팩이 끝났다는 신호</small></div></li>
-        <li><span data-icon="heart"></span><div><b>내 몸과 멘탈도 챙기기</b><small>식사·화장실·체력·멘탈이 바닥나면 느려져요</small></div></li>
-        <li><span data-icon="clipboard"></span><div><b>기록은 그때그때</b><small>밀린 기록은 퇴근 후 무급 야근이 돼요</small></div></li>
-        <li><span data-icon="pinch"></span><div><b>두 손가락으로 확대·이동</b><small>작은 환자도 정확하게 탭할 수 있어요</small></div></li>
+        <li><span data-icon="syringe"></span><div><b>처방 색깔대로 약 챙기기</b><small>머리 위 색과 다른 약을 쓰면 투약 사고!</small></div></li>
+        <li><span data-icon="users"></span><div><b>동료와 나눠서 일하기</b><small>동료에게 접수·처치·기록 위주로 요청</small></div></li>
+        <li><span data-icon="heart"></span><div><b>내 몸과 멘탈도 챙기기</b><small>실장님 눈치 보며 화장실·간식·초코바</small></div></li>
+        <li><span data-icon="pinch"></span><div><b>두 손가락으로 확대·이동</b><small>더블탭으로도 확대돼요</small></div></li>
       </ul>
       <button id="btn-start" class="primary">출근하기</button>
       <button id="btn-howto" class="secondary"><span data-icon="help"></span>게임 방법 보기</button>
@@ -141,16 +123,38 @@
     </div>
   </div>
 
-  <!-- 결과 화면 -->
+  <!-- 출근 브리핑 -->
+  <div id="screen-brief" class="screen hidden">
+    <div class="card">
+      <p class="eyebrow" id="brief-eyebrow">DAY 1 · 신규 간호사</p>
+      <h2 id="brief-title">오늘의 근무</h2>
+      <div id="brief-body"></div>
+      <button id="btn-brief-go" class="primary">근무 시작</button>
+    </div>
+  </div>
+
+  <!-- 결과 -->
   <div id="screen-result" class="screen hidden">
     <div class="card">
       <p class="eyebrow" id="res-eyebrow">퇴근 기록</p>
       <h2 id="res-title">DAY 1 퇴근</h2>
       <div id="res-stats"></div>
       <div id="res-badges"></div>
-      <div class="shop-head"><h3>의원 업그레이드</h3><span id="shop-money"></span></div>
+      <div id="res-extra"></div>
+      <button id="btn-evening" class="primary">퇴근하기</button>
+    </div>
+  </div>
+
+  <!-- 퇴근 후 -->
+  <div id="screen-evening" class="screen hidden">
+    <div class="card">
+      <p class="eyebrow" id="eve-eyebrow">퇴근 후 · 고시원</p>
+      <h2 id="eve-title">오늘 밤은 뭘 할까?</h2>
+      <div id="eve-mood"></div>
+      <div id="eve-acts"></div>
+      <div class="shop-head"><h3>쇼핑 · 내 살림</h3><span id="shop-money"></span></div>
       <div id="shop"></div>
-      <button id="btn-next" class="primary">다음 날 출근</button>
+      <button id="btn-sleep" class="primary">잠자기</button>
     </div>
   </div>
 
@@ -164,53 +168,94 @@
       <div class="tabs" id="help-tabs">
         <button data-tab="basic" class="on">기본 조작</button>
         <button data-tab="flow">환자 흐름</button>
+        <button data-tab="people">사람들</button>
         <button data-tab="icons">아이콘</button>
-        <button data-tab="real">간호사의 현실</button>
+        <button data-tab="real">현실</button>
       </div>
       <div class="tab-body" data-tab="basic">
-        <div class="hrow"><span data-icon="tap"></span><div><b>탭해서 일 시키기</b><p>환자·침대·시설 버튼을 탭하면 간호사가 뛰어가서 처리해요. 최대 5개까지 순서대로 예약되고, 아래 '할 일' 칩을 탭하면 취소돼요.</p></div></div>
-        <div class="hrow"><span data-icon="pinch"></span><div><b>확대 · 이동</b><p>두 손가락으로 벌리면 확대, 드래그하면 이동해요. 오른쪽 위 +/− 버튼과 전체 보기 버튼도 있어요.</p></div></div>
-        <div class="hrow"><span data-icon="tray"></span><div><b>처치 트레이(손 2개)</b><p>주사·수액은 약품장에서 먼저 챙겨야 해요. 트레이는 두 칸뿐! 칸을 탭하면 내려놓아요.</p></div></div>
-        <div class="hrow"><span data-icon="shield"></span><div><b>환자 확인 모드</b><p><b>꼼꼼히</b>: 이름·생년월일 확인으로 조금 느리지만 안전. <b>빠르게</b>: 시간은 아끼지만 투약 사고 위험이 있고, 지칠수록 위험이 커져요.</p></div></div>
-        <div class="hrow"><span data-icon="battery"></span><div><b>내 몸 게이지</b><p>식사·화장실·체력·멘탈이 바닥나면 느려지고 실수가 늘어요. 탕비실의 화장실·간식으로 회복하세요.</p></div></div>
-        <div class="hrow"><span data-icon="clock"></span><div><b>하루 일과</b><p>09:00~18:00 (실제 3분). 17:30 접수 마감, 18:00 이후 남은 환자와 기록은 전부 야근이에요.</p></div></div>
+        <div class="hrow"><span data-icon="tap"></span><div><b>탭해서 일 시키기</b><p>환자·침대·시설 버튼을 탭하면 간호사가 뛰어가서 처리해요. 최대 5개까지 순서대로 예약되고, '할 일' 칩을 탭하면 취소돼요.</p></div></div>
+        <div class="hrow"><span data-icon="pinch"></span><div><b>확대 · 이동</b><p>두 손가락으로 벌리면 확대, 드래그하면 이동, 더블탭하면 그 자리를 확대해요. 오른쪽 아래 +/− 버튼도 있어요.</p></div></div>
+        <div class="hrow"><span data-icon="tray"></span><div><b>처치 트레이</b><p>약품장에서 약을 골라 담아요. 기본 2칸, 가디건을 사면 3칸. 칸을 탭하면 내려놓아요.</p></div></div>
+        <div class="hrow"><span data-icon="syringe"></span><div><b>투약 확인</b><p>주사·수액을 놓을 때 트레이에서 약을 골라요. <b>환자 머리 위 색</b>과 같은 약을 골라야 해요. 몇 초 안에 안 고르면 첫 번째 약이 자동으로 쓰여요. 바쁠수록 사고가 나요.</p></div></div>
+        <div class="hrow"><span data-icon="choco"></span><div><b>초코바</b><p>그 자리에서 바로 식사 +40. 퇴근 후 상점에서 살 수 있어요. 실장님한테 걸리면 한소리 들어요.</p></div></div>
+        <div class="hrow"><span data-icon="users"></span><div><b>동료 요청</b><p>동료 간호사에게 '접수·수납 / 처치 / 기록 / 알아서' 중 어떤 일 위주로 할지 요청해요. 채혈과 원장님 호출은 내 몫이에요.</p></div></div>
+        <div class="hrow"><span data-icon="clock"></span><div><b>하루 일과</b><p>09:00~18:00 (실제 3분). 13~14시 점심시간, 17:30 접수 마감. 18:00 이후 남은 환자와 기록은 전부 야근이에요.</p></div></div>
       </div>
       <div class="tab-body hidden" data-tab="flow">
         <ol class="flow">
-          <li><span data-icon="door"></span><div><b>대기실</b><p>환자를 탭 → 접수대에서 접수</p></div></li>
-          <li><span data-icon="stetho"></span><div><b>진료실</b><p>원장님이 자동으로 진료하고 처방을 내려요</p></div></li>
-          <li><span data-icon="syringe"></span><div><b>처치 대기</b><p>주사·수액은 약품장에서 챙긴 뒤 환자 탭, 핫팩은 바로 탭</p></div></li>
-          <li><span data-icon="bell"></span><div><b>수액실 · 물리치료실</b><p>침대가 빨갛게 깜빡이면 탭해서 정리</p></div></li>
-          <li><span data-icon="card"></span><div><b>수납</b><p>환자를 탭해서 수납. 서류 아이콘은 실비 서류까지 발급</p></div></li>
-          <li><span data-icon="clipboard"></span><div><b>기록</b><p>처치할 때마다 기록이 쌓여요. 접수대 '기록' 버튼으로 정리하지 않으면 퇴근 후 무급 야근!</p></div></li>
+          <li><span data-icon="ticket"></span><div><b>번호표 · 대기</b><p>환자가 들어와 번호표를 뽑고 접수·수납실에 앉아요</p></div></li>
+          <li><span data-icon="doc"></span><div><b>접수</b><p>환자를 탭 → 간호사가 데스크에서 번호를 부르고 접수</p></div></li>
+          <li><span data-icon="stetho"></span><div><b>진료</b><p>접수 순서대로 한 명씩 진료실에 들어가요</p></div></li>
+          <li><span data-icon="syringe"></span><div><b>주사실</b><p>주사·수액·핫팩·채혈 처방 환자는 주사실에서 기다려요. 약품장은 주사실 옆문으로 바로 이어져요</p></div></li>
+          <li><span data-icon="bed"></span><div><b>수액·치료실</b><p>수액·핫팩 환자를 안내한 뒤 침대에서 세팅. 침대가 깜빡이면 정리</p></div></li>
+          <li><span data-icon="card"></span><div><b>수납</b><p>다시 접수·수납실에 앉은 환자를 탭해서 수납</p></div></li>
+          <li><span data-icon="clipboard"></span><div><b>기록</b><p>처치할 때마다 기록이 쌓여요. 안 하면 퇴근 후 무급 야근</p></div></li>
         </ol>
-        <div class="tipbox"><span data-icon="sparkle"></span><p>연달아 빠르게 처리하면 <b>콤보</b>! 수입이 최대 2배까지 올라가요.</p></div>
+        <div class="tipbox"><span data-icon="drop"></span><p><b>채혈</b>은 미니게임! 바늘이 초록 구간에 들어왔을 때 멈추세요. 혈관이 잘 안 보이는 환자는 구간이 좁아요.</p></div>
+      </div>
+      <div class="tab-body hidden" data-tab="people">
+        <div class="hrow"><span data-icon="stetho"></span><div><b>원장님 (매일 바뀜)</b><p>꼼꼼파(진료 김) · 속전속결(처치가 몰림) · 호출 대마왕 · 선 넘는 농담 · 천사 원장님. 출근 브리핑에서 오늘의 원장님을 확인하세요.</p></div></div>
+        <div class="hrow"><span data-icon="megaphone"></span><div><b>간호실장</b><p>원장님 앞에선 싹싹, 아랫사람에겐 모질어요. 순찰 중에 쉬는 걸 보거나 기록이 밀려 있으면 태움(멘탈 −). 잡일도 떠넘겨요.</p></div></div>
+        <div class="hrow"><span data-icon="users"></span><div><b>동료 간호사</b><p>자동으로 함께 일해요. 초반엔 2명이지만… 누군가는 이직할지도.</p></div></div>
+        <div class="hrow"><span data-icon="medal"></span><div><b>승진</b><p>신규 → 간호사 → 책임 → 주임 → 수간호사. 처리한 환자·평판·실장 평가로 점수가 쌓이고, 승진하면 시급이 올라요.</p></div></div>
+        <div class="hrow"><span data-icon="home"></span><div><b>집</b><p>고시원 → 원룸 → 투룸 → 아파트. 좋은 집일수록 자고 나서 더 회복되고 체력·멘탈 최대치도 늘어요.</p></div></div>
       </div>
       <div class="tab-body hidden" data-tab="icons">
         <div class="icon-grid">
-          <div><span class="badge-ic shot" data-icon="syringe"></span>주사 처방</div>
-          <div><span class="badge-ic iv" data-icon="iv"></span>수액 처방</div>
-          <div><span class="badge-ic heat" data-icon="flame"></span>핫팩 처방</div>
+          <div><span class="badge-ic ticket"><b>12</b></span>번호표 · 접수 대기</div>
+          <div><span class="badge-ic" style="--c:#3f7df0" data-icon="syringe"></span>주사 · 진통제(파랑)</div>
+          <div><span class="badge-ic" style="--c:#e84393" data-icon="syringe"></span>주사 · 항생제(분홍)</div>
+          <div><span class="badge-ic" style="--c:#e0a100" data-icon="iv"></span>수액 · 영양(노랑)</div>
+          <div><span class="badge-ic" style="--c:#35b6e8" data-icon="iv"></span>수액 · 식염수(하늘)</div>
+          <div><span class="badge-ic heat" data-icon="flame"></span>핫팩</div>
+          <div><span class="badge-ic blood" data-icon="drop"></span>채혈</div>
           <div><span class="badge-ic exam" data-icon="stetho"></span>진료 중</div>
           <div><span class="badge-ic bell" data-icon="bell"></span>처치 끝, 정리 필요</div>
           <div><span class="badge-ic pay" data-icon="card"></span>수납 대기</div>
           <div><span class="badge-ic doc" data-icon="doc"></span>실비 서류 요청</div>
-          <div><span class="badge-ic rude" data-icon="angry"></span>진상 환자 (멘탈↓)</div>
+          <div><span class="badge-ic rude" data-icon="angry"></span>진상 환자</div>
           <div><span class="badge-ic alert" data-icon="heartPulse"></span>흉통! 즉시 119</div>
-          <div><span class="badge-ic errand" data-icon="stetho"></span>원장님 호출</div>
+          <div><span class="badge-ic mate" data-icon="users"></span>동료가 처리 중</div>
         </div>
         <p class="note">환자 머리 위 막대는 <b>인내심</b>이에요. 빨개지면 곧 화내며 떠나요.</p>
       </div>
       <div class="tab-body hidden" data-tab="real">
         <p class="lead">이 게임의 고단함은 실제 조사 결과를 바탕으로 만들었어요.</p>
         <div class="fact"><b>19.5명</b><p>병동 간호사 1명이 맡는 환자 수(2016). OECD 최고 수준이지만 법적 기준이 없어요.</p><small>머니투데이 · 프레시안</small></div>
-        <div class="fact"><b>81.5~92.8%</b><p>근무 중 간호 업무를 하나 이상 끝내지 못한 간호사 비율 → 게임 속 <em>밀린 기록</em></p><small>대한간호학회지</small></div>
-        <div class="fact"><b>하루 2~3시간</b><p>수당 없는 초과 근무가 비일비재. 인계 후 남은 일은 '역량 부족' 취급 → 게임 속 <em>무급 야근</em></p><small>노컷뉴스 · 메디게이트뉴스</small></div>
-        <div class="fact"><b>66.2%</b><p>의사 업무까지 요구받은 경험 → 게임 속 <em>원장님 호출</em></p><small>데일리팜</small></div>
-        <div class="fact"><b>81.0%</b><p>인권침해 유형 중 폭언 비율, 피해 후 71.8%는 '무대응' → 게임 속 <em>진상 환자 · 멘탈</em></p><small>메디칼타임즈(2025, 간협 조사)</small></div>
-        <div class="fact"><b>72.1%</b><p>3개월 내 이직을 고려한 간호사 비율(2026)</p><small>데일리안 · 보건의료노조</small></div>
-        <div class="fact"><b>휴게시간 미준수</b><p>밥도 화장실도 못 가는 12시간 → 게임 속 <em>식사·화장실 게이지, 휴게시간 정산</em></p><small>머니투데이 · 메디게이트뉴스</small></div>
+        <div class="fact"><b>81.5~92.8%</b><p>근무 중 간호 업무를 하나 이상 끝내지 못한 간호사 비율 → <em>밀린 기록</em></p><small>대한간호학회지</small></div>
+        <div class="fact"><b>하루 2~3시간</b><p>수당 없는 초과 근무. 인계 후 남은 일은 '역량 부족' 취급 → <em>무급 야근 · 야근수당 0원</em></p><small>노컷뉴스 · 메디게이트뉴스</small></div>
+        <div class="fact"><b>66.2%</b><p>의사 업무까지 요구받은 경험 → <em>원장님 호출</em></p><small>데일리팜</small></div>
+        <div class="fact"><b>81.0%</b><p>인권침해 중 폭언 비율. 가해자는 선임 간호사·의사·환자 순, 피해 후 71.8%가 무대응 → <em>진상 환자 · 실장님 태움 · 멘탈</em></p><small>메디칼타임즈(2025, 간협 조사)</small></div>
+        <div class="fact"><b>86.3%</b><p>간호직의 폭언·폭행·성폭력 경험률 합계(2025) → <em>선 넘는 원장님</em></p><small>데일리메디 · 보건의료노조</small></div>
+        <div class="fact"><b>72.1%</b><p>3개월 내 이직을 고려한 간호사 비율(2026) → <em>이직하는 동료</em></p><small>데일리안 · 보건의료노조</small></div>
+        <div class="fact"><b>휴게시간 미준수</b><p>밥도 화장실도 못 가는 하루 → <em>식사·화장실 게이지, 휴게시간 정산</em></p><small>머니투데이 · 메디게이트뉴스</small></div>
       </div>
+    </div>
+  </div>
+
+  <!-- 채혈 미니게임 -->
+  <div id="screen-blood" class="screen hidden">
+    <div class="card blood">
+      <p class="eyebrow" id="blood-eyebrow">채혈</p>
+      <h2 id="blood-title">김순자님</h2>
+      <p class="blood-vein" id="blood-vein">혈관 잘 보임</p>
+      <div class="arm"><div class="vein"></div>
+        <div class="track" id="blood-track"><div class="zone" id="blood-zone"></div><div class="needle" id="blood-needle"></div></div>
+      </div>
+      <div class="anger"><span>환자 분노</span><b><i id="blood-anger"></i></b></div>
+      <p class="blood-msg" id="blood-msg">바늘이 초록 구간에 들어오면 멈추세요</p>
+      <button id="btn-blood-stop" class="primary danger">찌르기!</button>
+      <button id="btn-blood-later" class="ghost">나중에 하기</button>
+    </div>
+  </div>
+
+  <!-- 선택지 모달 -->
+  <div id="screen-choice" class="screen hidden">
+    <div class="card small choice">
+      <div class="brand-mark soft" id="choice-icon"></div>
+      <p class="eyebrow" id="choice-who"></p>
+      <h2 id="choice-text"></h2>
+      <div id="choice-btns"></div>
     </div>
   </div>
 

@@ -375,3 +375,138 @@ button.ghost { display: block; width: 100%; padding: 11px; color: var(--ink-3); 
   #clock { font-size: 18px; }
   .v-top span { display: none; }
 }
+
+/* ===================== v3 추가 ===================== */
+#map { touch-action: none; }
+.tl-mark.close { left: 94.4%; }
+.tl-lunch { position: absolute; top: -1px; height: 7px; left: 44.4%; width: 11.1%; border-radius: 3px; background: repeating-linear-gradient(45deg, rgba(245,165,36,.55) 0 3px, rgba(245,165,36,.25) 3px 6px); }
+.phase.lunch { color: #a86400; background: var(--amber-l); }
+
+/* 트레이 슬롯(동적 개수) */
+.tray-slots .hand { min-width: 0; }
+.hand .med-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
+.hand.full::before { display: none; }
+.hand.full { box-shadow: 0 2px 6px rgba(21,48,43,.12), inset 0 -3px 0 var(--c); }
+.hand.full span { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 빠른 메뉴 */
+.quick { display: flex; flex-direction: column; gap: 5px; flex: none; }
+.qbtn { position: relative; display: flex; align-items: center; gap: 5px; width: 116px; white-space: nowrap; height: 31px; padding: 0 9px; border-radius: 11px; background: #fff; border: 1px solid var(--line); font-size: 12px; font-weight: 700; box-shadow: 0 2px 6px rgba(21,48,43,.06); }
+.qbtn [data-icon], .qbtn .ic { font-size: 16px; }
+.qbtn.choco [data-icon] { color: #8d5a3b; }
+.qbtn.mates [data-icon] { color: var(--mint-d); }
+.qbtn em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 800; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 9px; background: #eef4f3; color: var(--ink-2); display: flex; align-items: center; justify-content: center; }
+.qbtn:active { transform: scale(.96); }
+.qbtn:disabled { opacity: .45; }
+
+/* 시트(약품장 · 투약 확인 · 동료 요청) */
+.sheet {
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 40;
+  background: rgba(255,255,255,.98); border-radius: 20px; padding: 12px; box-shadow: 0 -6px 30px rgba(21,48,43,.22);
+  animation: sheetIn .2s ease-out;
+}
+.sheet h4 { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.sheet h4 .ic { font-size: 17px; color: var(--mint-d); }
+.sheet h4 .close { margin-left: auto; width: 28px; height: 28px; border-radius: 9px; background: #eef4f3; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--ink-2); }
+.sheet .sub2 { font-size: 11.5px; color: var(--ink-3); margin-bottom: 9px; }
+.med-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.med-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 8px; border-radius: 14px; background: #f5f9f8; border: 2px solid transparent; font-size: 11.5px; font-weight: 700; color: var(--ink); }
+.med-btn .mi { width: 34px; height: 34px; border-radius: 11px; background: #fff; color: var(--c); font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 var(--c), 0 1px 3px rgba(21,48,43,.1); }
+.med-btn small { font-size: 10px; color: var(--ink-3); font-weight: 600; }
+.med-btn:active { transform: scale(.95); border-color: var(--c); }
+.rx { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: #15302b; color: #fff; font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
+.rx .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: #fff; color: var(--c); font-weight: 800; }
+.rx .chip .ic { font-size: 14px; }
+.timer { height: 4px; border-radius: 2px; background: #eef4f3; overflow: hidden; margin-top: 9px; }
+.timer i { display: block; height: 100%; background: var(--coral); transform-origin: left; }
+.mate-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.mate-row:first-of-type { border-top: none; }
+.mate-av { width: 34px; height: 34px; border-radius: 12px; background: var(--mint-l); color: var(--mint-d); font-size: 18px; flex: none; display: flex; align-items: center; justify-content: center; }
+.mate-name { font-size: 12.5px; font-weight: 700; width: 58px; flex: none; line-height: 1.2; }
+.mate-name small { display: block; font-size: 10px; color: var(--ink-3); font-weight: 600; }
+.focus-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; flex: 1; padding: 3px; border-radius: 12px; background: #eef4f3; }
+.focus-seg button { padding: 7px 0; border-radius: 9px; font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.focus-seg button.on { background: #fff; color: var(--mint-d); box-shadow: 0 2px 5px rgba(21,48,43,.12); }
+
+/* 오버레이 배지 추가 */
+.badge-ic.ticket { --c: #fff; background: #15302b; font-size: 11px; font-weight: 800; width: 26px; border-radius: 8px; }
+.badge-ic.ticket b { font-weight: 800; }
+.badge-ic.blood { --c: #e53935; }
+.badge-ic.mate { --c: #fff; background: var(--mint); }
+.badge-ic.med { box-shadow: 0 3px 8px rgba(21,48,43,.22), inset 0 0 0 2.5px var(--c); }
+.po .mate-tag { position: absolute; top: -5px; left: -4px; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); color: #fff; font-size: 9px; display: none; align-items: center; justify-content: center; box-shadow: 0 0 0 1.5px #fff; }
+.po.by-mate .mate-tag { display: flex; }
+
+/* 말풍선 */
+.bubble { pointer-events: none; max-width: 190px; background: #fff; color: var(--ink); font-size: 11.5px; font-weight: 700; line-height: 1.35; padding: 6px 9px; border-radius: 12px; box-shadow: 0 6px 14px rgba(21,48,43,.2); text-align: center; animation: bump .25s ease-out; }
+.bubble.lead { background: #2d3e66; color: #fff; }
+.bubble.sweet { background: #ffe3ef; color: #a2195b; }
+.bubble.doc { background: #fff6dc; color: #7a5200; }
+.nametag { pointer-events: none; font-size: 9.5px; font-weight: 700; color: #fff; background: rgba(21,48,43,.7); padding: 1px 6px; border-radius: 999px; white-space: nowrap; }
+.nametag.lead { background: #2d3e66; }
+.nametag.me { background: var(--coral); }
+
+/* 브리핑 / 결과 / 저녁 */
+.brief-grid { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.brief-item { display: flex; gap: 11px; align-items: center; padding: 10px 12px; border-radius: 15px; background: #f5f9f8; }
+.brief-item > .bi { width: 38px; height: 38px; border-radius: 12px; background: #fff; color: var(--mint-d); font-size: 21px; display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 1px 3px rgba(21,48,43,.1); }
+.brief-item b { font-size: 13.5px; display: block; }
+.brief-item p { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.brief-item .tag { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--coral-l); color: var(--coral); margin-left: 4px; vertical-align: 1px; }
+.brief-item .tag.good { background: var(--mint-l); color: var(--mint-d); }
+.bars2 { display: flex; gap: 6px; margin-top: 4px; }
+.bars2 div { flex: 1; font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.bars2 b { display: block; height: 6px; border-radius: 3px; background: #e3ebe9; margin-top: 3px; overflow: hidden; }
+.bars2 i { display: block; height: 100%; border-radius: 3px; }
+.promo { margin-top: 10px; padding: 12px; border-radius: 16px; background: linear-gradient(135deg, #fff6dc, #ffe9c2); text-align: left; }
+.promo h4 { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #8a5400; }
+.promo h4 .ic { font-size: 17px; color: #e09a00; }
+.promo .pbar2 { height: 7px; border-radius: 4px; background: rgba(138,84,0,.15); margin: 8px 0 4px; overflow: hidden; }
+.promo .pbar2 i { display: block; height: 100%; background: linear-gradient(90deg, #ffc531, #f5a524); }
+.promo small { font-size: 11px; color: #8a5400; }
+.promo.up { background: linear-gradient(135deg, #ffd45c, #f5a524); }
+.promo.up h4, .promo.up small { color: #4a2c00; }
+.invest { margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--mint-l); color: var(--mint-d); font-size: 12.5px; font-weight: 600; text-align: left; display: flex; gap: 8px; align-items: center; }
+.invest .ic { font-size: 18px; flex: none; }
+.act-list { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.act { display: flex; gap: 11px; align-items: center; padding: 11px 12px; border-radius: 16px; background: #f5f9f8; border: 2px solid transparent; width: 100%; text-align: left; }
+.act.on { border-color: var(--mint); background: #fff; box-shadow: 0 4px 12px rgba(21,48,43,.1); }
+.act > .ai { width: 38px; height: 38px; border-radius: 12px; background: #fff; color: var(--mint-d); font-size: 20px; display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 1px 3px rgba(21,48,43,.1); }
+.act b { font-size: 13.5px; display: block; }
+.act p { font-size: 11.5px; color: var(--ink-3); }
+.act.forced { background: var(--coral-l); border-color: var(--coral); }
+.act.forced > .ai { color: var(--coral); }
+.mood { text-align: left; padding: 11px 13px; border-radius: 16px; background: #15302b; color: rgba(255,255,255,.88); font-size: 12.5px; line-height: 1.55; margin-bottom: 10px; }
+.mood b { color: #7ff0dc; }
+.item .owned { font-size: 11px; font-weight: 700; color: var(--mint-d); }
+.home-tag { display: inline-block; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: var(--mint-l); color: var(--mint-d); margin-left: 4px; vertical-align: 1px; }
+
+/* 채혈 미니게임 */
+.card.blood h2 { margin-bottom: 4px; }
+.blood-vein { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--mint-l); color: var(--mint-d); }
+.blood-vein.hard { background: var(--coral-l); color: var(--coral); }
+.arm { position: relative; margin: 16px 0 12px; height: 92px; border-radius: 46px; background: linear-gradient(180deg, #f7d7bd, #eec3a2); box-shadow: inset 0 -6px 12px rgba(0,0,0,.08); overflow: hidden; }
+.vein { position: absolute; left: -10%; right: -10%; top: 40px; height: 9px; border-radius: 5px; background: rgba(110,120,200,.55); transform: rotate(-3deg); }
+.vein.faint { background: rgba(110,120,200,.18); }
+.track { position: absolute; left: 16px; right: 16px; top: 26px; height: 38px; border-radius: 12px; background: rgba(255,255,255,.35); }
+.zone { position: absolute; top: 0; bottom: 0; border-radius: 10px; background: rgba(53,196,138,.55); box-shadow: inset 0 0 0 2px rgba(18,138,118,.7); }
+.needle { position: absolute; top: -10px; width: 4px; height: 58px; margin-left: -2px; border-radius: 2px; background: #2d3436; box-shadow: 0 0 0 2px rgba(255,255,255,.8); }
+.needle::after { content: ''; position: absolute; bottom: -6px; left: -3px; border: 5px solid transparent; border-top: 8px solid #2d3436; }
+.anger { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); }
+.anger b { flex: 1; height: 8px; border-radius: 4px; background: #eef4f3; overflow: hidden; }
+.anger i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffb36b, var(--coral)); transition: width .3s; }
+.blood-msg { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 10px 0 2px; min-height: 20px; }
+.blood-msg.bad { color: var(--coral); }
+.blood-msg.good { color: var(--mint-d); }
+button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,53,.3); }
+.choice #choice-btns { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.choice #choice-btns button { text-align: left; padding: 12px 14px; border-radius: 14px; background: #f5f9f8; font-size: 13.5px; font-weight: 700; }
+.choice #choice-btns button small { display: block; font-size: 11px; font-weight: 600; color: var(--ink-3); margin-top: 2px; }
+.choice #choice-btns button:active { background: var(--mint-l); }
+.choice h2 { font-size: 17px; line-height: 1.45; }
+
+@keyframes sheetIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.actor-ov { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
+.actor-ov .pbar { visibility: hidden; }
+
+.qbtn b { font-weight: 700; font-size: 11.5px; }
