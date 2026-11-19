@@ -80,6 +80,11 @@
         <button id="zoom-reset" aria-label="전체 보기"><span data-icon="expand"></span></button>
       </div>
       <div id="sheet" class="sheet hidden"></div>
+      <div id="preview-bar" class="hidden">
+        <div class="pv-tx"><b>맵 미리보기</b><span>두 손가락으로 확대 · 드래그로 이동</span></div>
+        <button id="pv-back" class="pv-btn ghosty">브리핑</button>
+        <button id="pv-go" class="pv-btn">근무 시작</button>
+      </div>
       <div id="loading">의원 짓는 중…</div>
     </main>
 
@@ -125,11 +130,17 @@
 
   <!-- 출근 브리핑 -->
   <div id="screen-brief" class="screen hidden">
-    <div class="card">
+    <div class="card brief">
       <p class="eyebrow" id="brief-eyebrow">DAY 1 · 신규 간호사</p>
       <h2 id="brief-title">오늘의 근무</h2>
-      <div id="brief-body"></div>
+      <div class="tabs" id="brief-tabs">
+        <button data-btab="today" class="on">오늘의 근무</button>
+        <button data-btab="map">병원 지도 · 규모</button>
+      </div>
+      <div id="brief-body" class="btab" data-btab="today"></div>
+      <div id="brief-map" class="btab hidden" data-btab="map"></div>
       <button id="btn-brief-go" class="primary">근무 시작</button>
+      <button id="btn-brief-look" class="secondary"><span data-icon="expand"></span>3D로 미리 둘러보기</button>
     </div>
   </div>
 

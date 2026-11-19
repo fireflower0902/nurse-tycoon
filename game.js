@@ -378,9 +378,9 @@ let phoneMesh;
 // ---------- 매일 바뀌는 것: 침대 · TV ----------
 const dayGroup = new THREE.Group();
 world.add(dayGroup);
-function buildBeds() {
+function buildBeds(holder) {
   dayGroup.clear();
-  S.beds = [];
+  holder.beds = [];
   const make = (kind, n, bz, flip) => {
     [-2.2, -0.9, 0.4, 1.7].slice(0, n).forEach((dx) => {
       const c = R('ward', dx, bz);
@@ -411,7 +411,7 @@ function buildBeds() {
       };
       bed.ov.style.visibility = 'hidden';
       hit.userData.hit = { type: 'bed', bed };
-      S.beds.push(bed);
+      holder.beds.push(bed);
     });
   };
   make('iv', Math.min(4, save.clinic.ivBeds), -2.0, false);
@@ -800,8 +800,10 @@ function newDay(doc) {
              startRating: save.rating, maxCombo: 0, restSec: 0, errands: 0, errandsMissed: 0, rude: 0, charted: 0,
              taeum: 0, harass: 0, ateLunch: false, blood: 0, bloodFail: 0, chores: 0, evalAdj: 0 },
   };
+  for (const b of preview.beds) b.ov.remove();
+  preview.beds = [];
   buildDayCast();
-  buildBeds();
+  buildBeds(S);
   allActors().forEach((a, i) => {
     a.hands = []; a.queue = []; a.cur = null; a.path = []; a.state = 'work'; a.slot = null;
     const sp = i < 2 ? DESK_SLOTS[i].spot : SP.prep;
@@ -2107,11 +2109,111 @@ function sleepAndNext() {
 }
 
 let briefDoc = null;
+const preview = { beds: [], on: false };
+const DOC_PLAN = {
+  kind: '여유로운 날이에요. 기록을 그때그때 정리하고, 점심도 꼭 챙겨 드세요.',
+  slow: '진료가 길어 접수·수납실이 붐벼요. 동료 한 명은 <b>접수·수납 위주</b>로, 대기 환자 인내심을 지켜 주세요.',
+  fast: '진료가 빨라 주사실이 금방 차요. 동료를 <b>처치 위주</b>로 돌리고, 처방 변경이 잦으니 약은 1~2개씩만 챙기세요.',
+  caller: '원장님 호출이 수시로 와요. 처치는 동료에게 맡기고(<b>처치 위주</b>), 나는 데스크·호출 대응 위주로.',
+  creep: '불쾌한 말에 대비해 멘탈을 아껴 두세요. 초코바·간식으로 멘탈과 체력을 미리 채워 두는 게 좋아요.',
+};
+function estPatients() {
+  const base = Math.max(3.6, 7.0 - (save.day - 1) * 0.5);
+  return Math.round(147 / base + (16.7 / base) * (1 / 0.6 - 1));
+}
+function minimapSVG(doc) {
+  const K = 14, ox = 7.2, oz = 11.6;
+  const X = (x) => ((x + ox) * K).toFixed(1), Z = (z) => ((z + oz) * K).toFixed(1);
+  const W = (14.4 * K).toFixed(0), H = (24.6 * K).toFixed(0);
+  const nIv = Math.min(4, save.clinic.ivBeds), nHeat = Math.min(4, save.clinic.heatBeds);
+  const info = {
+    exam: [`${doc.name} · ${doc.trait}`, '진료 의자 1'],
+    cabinet: ['약 5종', '주사실과 내부 문'],
+    ward: [`침대 · 수액 ${nIv} · 핫팩 ${nHeat}`],
+    inject: ['처치 대기 의자 6', '주사 · 채혈'],
+    desk: ['창구 2 · 번호표', `대기 의자 10${save.clinic.tv ? ' · TV' : ''}`],
+    pantry: ['화장실 · 간식', '점심 13~14시'],
+  };
+  const flow = { desk: '1·5', exam: '2', inject: '3', ward: '4' };
+  let g = `<svg class="minimap" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  g += `<rect x="${X(-COR)}" y="${Z(-11)}" width="${(2 * COR * K).toFixed(1)}" height="${(23.6 * K).toFixed(1)}" fill="#e3eeeb"/>`;
+  for (const r of Object.values(ROOMS)) {
+    g += `<rect x="${X(r.x0)}" y="${Z(r.z0)}" width="${((r.x1 - r.x0) * K).toFixed(1)}" height="${((r.z1 - r.z0) * K).toFixed(1)}" rx="6" fill="${r.floor}" stroke="#ffffff" stroke-width="3"/>`;
+    const tx = r.cx + (r.side < 0 ? -0.4 : 0.4), tz = r.cz + { exam: 0.2, cabinet: 0.9, ward: -0.05, inject: -0.6, desk: -1.6, pantry: 0.6 }[r.key];
+    g += `<text x="${X(tx)}" y="${Z(tz)}" text-anchor="middle" font-size="11" font-weight="800" fill="#15302b">${r.name}</text>`;
+    info[r.key].forEach((ln, i) => { g += `<text x="${X(tx)}" y="${(+Z(tz) + 13 + i * 11).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c6661">${ln}</text>`; });
+    const dx = r.side * COR;
+    g += `<rect x="${(+X(dx) - 2).toFixed(1)}" y="${Z(r.cz - 0.9)}" width="4" height="${(1.8 * K).toFixed(1)}" rx="2" fill="#1fb39a"/>`;
+    const fx = r.side < 0 ? r.x1 - 0.5 : r.x0 + 0.5, fz = r.cz + (r.key === 'desk' ? -1.0 : r.key === 'ward' ? 0.15 : 0);
+    if (flow[r.key]) g += `<circle cx="${X(fx)}" cy="${Z(fz)}" r="9" fill="#15302b"/><text x="${X(fx)}" y="${(+Z(fz) + 3.5).toFixed(1)}" text-anchor="middle" font-size="${flow[r.key].length > 1 ? 7 : 9}" font-weight="800" fill="#7ff0dc">${flow[r.key]}</text>`;
+  }
+  // 침대 · 의자 · 사람
+  [-2.2, -0.9, 0.4, 1.7].slice(0, nIv).forEach((dx) => { const c = R('ward', dx, -2.0); g += `<rect x="${X(c.x - 0.5)}" y="${Z(c.z - 1)}" width="${K}" height="${2 * K}" rx="3" fill="#a8dcef"/>`; });
+  [-2.2, -0.9, 0.4, 1.7].slice(0, nHeat).forEach((dx) => { const c = R('ward', dx, 2.0); g += `<rect x="${X(c.x - 0.5)}" y="${Z(c.z - 1)}" width="${K}" height="${2 * K}" rx="3" fill="#f6c3a0"/>`; });
+  for (const st of [...SEATS.lobby, ...SEATS.inject]) g += `<circle cx="${X(st.x)}" cy="${Z(st.z)}" r="3.2" fill="${SEATS.lobby.includes(st) ? '#f2a65a' : '#8f7fe8'}"/>`;
+  const desk = R('desk', -0.7, -2.6);
+  g += `<rect x="${X(desk.x - 1.9)}" y="${Z(desk.z - 0.3)}" width="${(3.8 * K).toFixed(1)}" height="${(0.6 * K).toFixed(1)}" rx="3" fill="#e6c48f"/>`;
+  const dp = R('exam', -1.4, -1.85);
+  g += `<circle cx="${X(dp.x)}" cy="${Z(dp.z)}" r="5" fill="#ffffff" stroke="#15302b" stroke-width="2"/>`;
+  const lx = R('cabinet', LINK_DX, 0).x;
+  g += `<rect x="${X(lx - 0.6)}" y="${(+Z(-5) - 2).toFixed(1)}" width="${(1.2 * K).toFixed(1)}" height="4" rx="2" fill="#3f7df0"/>`;
+  g += `<text x="${X(0)}" y="${Z(12.3)}" text-anchor="middle" font-size="9" font-weight="800" fill="#128a76">▲ 입구</text>`;
+  return g + '</svg>';
+}
+function renderBriefMap(doc) {
+  const nMates = save.day <= 3 ? 2 : 1;
+  const beds = Math.min(4, save.clinic.ivBeds) + Math.min(4, save.clinic.heatBeds);
+  const evs = [
+    ['drop', '채혈 1~2건'], ['lunch', '점심 13~14시'], ['clock', '17:30 접수 마감'], ['megaphone', '실장 순찰'],
+  ];
+  if (save.day >= 2) evs.push(['heartPulse', '응급 환자 가능', 1], ['stetho', '처방 변경', 1]);
+  if (doc.harass) evs.push(['warning', '불쾌한 발언', 1]);
+  if (doc.kind) evs.push(['cup', '커피 이벤트']);
+  if (doc.errandMul > 2) evs.push(['stetho', '원장님 호출 잦음', 1]);
+  $('#brief-map').innerHTML = `<div class="map-wrap">${minimapSVG(doc)}</div>
+    <div class="scale-grid">
+      <div><b>1</b><small>의사</small></div>
+      <div><b>${1 + nMates}</b><small>간호사 (나+동료)</small></div>
+      <div><b>1</b><small>간호실장</small></div>
+      <div><b>${beds}</b><small>치료 침대</small></div>
+      <div><b>16</b><small>대기 의자</small></div>
+      <div><b>~${estPatients()}</b><small>예상 환자</small></div>
+    </div>
+    <div class="ev-list">${evs.map(([ic, t, w]) => `<span class="ev ${w ? 'warn' : ''}">${icon(ic)}${t}</span>`).join('')}</div>
+    <div class="stage-next">${icon('home')}<span><b>STAGE 1 · 동네 의원</b> — 다음 스테이지 <b>종합병원</b>(원무과·병동·3교대)은 준비 중이에요</span></div>`;
+}
+function setBriefTab(tab) {
+  document.querySelectorAll('#brief-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.btab === tab));
+  document.querySelectorAll('.btab').forEach((b) => b.classList.toggle('hidden', b.dataset.btab !== tab));
+}
+$('#brief-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-btab]'); if (b) setBriefTab(b.dataset.btab); });
+$('#brief-body').addEventListener('click', (e) => {
+  const fb = e.target.closest('[data-bfocus]');
+  if (!fb) return;
+  const i = +fb.dataset.bmate;
+  save.focus[i] = fb.dataset.bfocus; persist();
+  fb.parentElement.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === fb));
+});
+function startPreview() {
+  $('#screen-brief').classList.add('hidden');
+  if (S && S.ended) clearDay();
+  for (const b of preview.beds) b.ov.remove();
+  buildBeds(preview);
+  placeDoctor(briefDoc.look);
+  cam.tZoom = 1; cam.tpx = 0; cam.tpz = 0;
+  preview.on = true;
+  $('#preview-bar').classList.remove('hidden');
+  toast('🏠 오늘의 의원을 둘러보세요. 두 손가락으로 확대할 수 있어요');
+}
+function endPreview() { preview.on = false; $('#preview-bar').classList.add('hidden'); }
+$('#btn-brief-look').addEventListener('click', startPreview);
+$('#pv-back').addEventListener('click', () => { endPreview(); $('#screen-brief').classList.remove('hidden'); });
+$('#pv-go').addEventListener('click', () => { endPreview(); $('#btn-brief-go').click(); });
 function openBrief() {
   briefDoc = pickDoctor();
   const rank = RANKS[save.rank];
   $('#brief-eyebrow').textContent = `DAY ${save.day} · ${rank.name} · 시급 ${won(rank.wage)}`;
-  $('#brief-title').textContent = save.day === 1 ? '첫 출근이에요!' : '오늘의 근무';
+  $('#brief-title').textContent = save.day === 1 ? '첫 출근 · 작전을 세워 보세요' : '출근 전 작전 회의';
   const nMates = save.day <= 3 ? 2 : 1;
   const mx = maxStat();
   const bar = (label, v, c) => `<div>${label} ${v}/${mx}<b><i style="width:${v / mx * 100}%;background:${c}"></i></b></div>`;
@@ -2120,8 +2222,13 @@ function openBrief() {
     <div class="brief-item"><span class="bi">${icon('users')}</span><div><b>함께 일하는 동료 ${nMates}명</b><p>${MATE_DEFS.slice(0, nMates).map((m) => m.name).join(', ')}${save.day === 4 ? ' · <b>이 선생님이 이직했어요.</b> (간호사 72.1%가 이직을 고민)' : ''}</p></div></div>
     <div class="brief-item"><span class="bi">${icon('megaphone')}</span><div><b>최 실장 순찰 예정</b><p>원장님 앞에선 싹싹, 우리한텐… 쉬는 걸 들키지 마세요.</p></div></div>
     <div class="brief-item"><span class="bi">${icon('battery')}</span><div><b>컨디션 · ${HOMES[save.home].name}에서 출근</b><div class="bars2">${bar('체력', Math.round(save.stamina), '#1fb39a')}${bar('멘탈', Math.round(save.mental), '#f06292')}</div></div></div>
-    <div class="brief-item"><span class="bi">${icon('sparkle')}</span><div><b>오늘의 팁</b><p>${TIPS[(save.day - 1) % TIPS.length]}</p></div></div>
+    <div class="plan"><h4>${icon('sparkle')}추천 작전</h4><p>${DOC_PLAN[briefDoc.id]}</p></div>
+    <div class="brief-mates"><b>${icon('users')}동료 업무 미리 지정</b>
+      ${MATE_DEFS.slice(0, nMates).map((m, i) => `<div class="mate-row"><span class="mate-name">${m.name}</span><div class="focus-seg">${Object.entries(FOCUS).map(([k, v]) => `<button data-bmate="${i}" data-bfocus="${k}" class="${(save.focus[i] || 'auto') === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('')}
+    </div>
   </div>`;
+  renderBriefMap(briefDoc);
+  setBriefTab('today');
   $('#screen-brief').classList.remove('hidden');
 }
 $('#btn-brief-go').addEventListener('click', () => {
