@@ -92,9 +92,12 @@
 
     <footer id="bottom">
       <div class="dock">
+        <div class="dock-row req-row hidden" id="req-row">
+          <span class="dock-label">지시</span>
+          <div id="requests"></div>
+        </div>
         <div class="dock-row">
           <span class="dock-label">할 일</span>
-          <div id="requests"></div>
           <div id="queue"></div>
         </div>
         <div class="dock-row">
@@ -278,7 +281,7 @@
   <div id="cutscene" class="hidden">
     <div id="cs-stage"></div>
     <div class="cs-bar top"></div><div class="cs-bar bottom"></div>
-    <div class="cs-head"><span id="cs-title"></span><button id="cs-skip">건너뛰기 ›</button></div>
+    <div class="cs-head"><span id="cs-title"></span><span class="cs-btns"><button id="cs-mute" aria-label="음성 켜기/끄기"></button><button id="cs-skip">건너뛰기 ›</button></span></div>
     <div id="cs-box"><b id="cs-who"></b><p id="cs-text"></p><span class="cs-next">탭해서 계속</span></div>
   </div>
 

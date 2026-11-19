@@ -615,3 +615,21 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 .req i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #ffd166; transform-origin: left; }
 .req.queued { opacity: .55; }
 .bubble { max-width: 150px; font-size: 10.5px; padding: 4px 8px; border-radius: 10px; opacity: .95; }
+
+/* v5 */
+.req-row { padding: 6px 6px 6px 8px; margin: -2px -2px 0; border-radius: 14px; background: linear-gradient(90deg, rgba(45,62,102,.10), rgba(176,125,0,.08)); }
+.req-row .dock-label { color: #2d3e66; }
+#requests { flex: 1; overflow-x: auto; scrollbar-width: none; }
+#requests::-webkit-scrollbar { display: none; }
+.req { max-width: 220px; }
+.cs-btns { display: flex; gap: 6px; }
+#cs-mute { width: 34px; height: 30px; border-radius: 999px; background: rgba(0,0,0,.35); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+#cs-mute.off { color: rgba(255,255,255,.5); }
+
+.po .bar i.over { width: 100% !important; background: var(--coral); animation: overBlink .5s infinite; }
+@keyframes overBlink { 50% { opacity: .25; } }
+/* 동료·팀장 처리 중 = 파란색 원 (내 처리 중 = 민트 체크와 구분) */
+.po .mate-tag { background: #2f6fe4 !important; width: 15px; height: 15px; }
+.po.by-mate .badge-ic { box-shadow: 0 0 0 2.5px #2f6fe4, 0 3px 8px rgba(21,48,43,.22); }
+.po.by-mate .bar { box-shadow: 0 0 0 1.5px #2f6fe4; }
+.badge-ic.mate { --c: #fff; background: #2f6fe4 !important; }

@@ -133,7 +133,7 @@ function defaultSave() {
   return {
     day: 1, money: 0, rating: 3.0, rank: 0, evalPts: 0, stamina: 100, mental: 100, home: 0, choco: 2,
     items: { cardigan: 0, shoes: 0, tumbler: 0 }, clinic: { ivBeds: 2, heatBeds: 2, tv: 0 },
-    revenue: 0, investIdx: 0, seen: {}, lastDoc: null, focus: ['auto', 'auto'],
+    revenue: 0, investIdx: 0, seen: {}, lastDoc: null, focus: ['auto', 'auto'], muted: false,
   };
 }
 function loadSave() {
@@ -794,8 +794,8 @@ function newDay(doc) {
     warned: {}, beds: [], phone: { ringing: false, left: 0, next: rand(20, 32), by: null },
     spawnAt: 0.8, combo: 0, lastDone: -99, returns: [], charts: 0,
     errand: null, errandAt: rand(50, 75) / doc.errandMul, directive: null, directiveAt: rand(22, 35), bossCd: {},
-    quizAt: doc.quiz ? rand(45, 75) : -1, quizCount: 0,
-    lunchEnd: doc.biz ? LUNCH_S + 30 : LUNCH_E, intakeEnd: END_MIN - 30, extendDone: false,
+    quizAt: doc.quiz && Math.random() < 0.35 ? rand(70, 160) : -1, quizCount: 0, quizPending: -1,
+    lunchEnd: LUNCH_E, intakeEnd: END_MIN - 30, extendDone: false,
     changeAt: day >= 2 ? rand(45, 120) / (doc.changeMul || 1) : -1,
     emergencyAt: day >= 2 ? rand(35, 150) : -1,
     harassAt: doc.harass ? rand(30, 55) : -1, harassCount: 0,
@@ -835,6 +835,7 @@ function spawnPatient(type, opts = {}) {
     rude: !!opts.rude, yellT: rand(4, 7), bed: null, busy: false, seat: null,
     pos: { ...SP.exit }, path: [], face: Math.PI, spot: null,
   };
+  if (save.day === 1) p.max *= 1.3; else if (save.day === 2) p.max *= 1.15;
   p.patience = p.max;
   p.ch = makePatientModel(type, Math.random());
   setPose(p.ch, 'stand');
@@ -1019,12 +1020,13 @@ el.traySlots.addEventListener('click', (e) => {
 const P = (t) => S.patients.get(t.pid);
 const isLunch = () => { if (!S) return false; const gm = gameMinute(); return gm >= LUNCH_S && gm < S.lunchEnd; };
 function deskSlotFor(actor) {
-  let s = DESK_SLOTS.find((d) => d.owner === actor);
-  if (!s) s = DESK_SLOTS.find((d) => !d.owner);
-  if (!s) s = DESK_SLOTS[actor === player ? 0 : 1];
+  if (actor === player) { DESK_SLOTS[0].owner = player; return DESK_SLOTS[0]; }
+  const s = DESK_SLOTS[1];
+  if (s.owner && s.owner !== actor && s.owner.cur && ACT[s.owner.cur.a.kind].desk) return null; // 의자는 한 사람만
   s.owner = actor;
   return s;
 }
+const deskFreeFor = (m) => !DESK_SLOTS[1].owner || DESK_SLOTS[1].owner === m || !(DESK_SLOTS[1].owner.cur && ACT[DESK_SLOTS[1].owner.cur.a.kind].desk);
 function releaseDesk(actor) { DESK_SLOTS.forEach((d) => { if (d.owner === actor) d.owner = null; }); }
 function frontOf(spot, d = 0.85) {
   return { x: spot.x + Math.sin(spot.rot || 0) * d, z: spot.z + Math.cos(spot.rot || 0) * d, rot: (spot.rot || 0) + Math.PI, via: spot.via };
@@ -1200,6 +1202,7 @@ const ACT = {
       S.stats.errands++; S.stats.evalAdj += 3; S.body.mental -= 3;
       S.errandAt = S.t + rand(40, 70) / S.doc.errandMul * (S.grudge ? 0.7 : 1);
       toast('🧑‍⚕️ 원장님 부탁 처리 완료… 내 일은 그대로 밀렸다');
+      if (S.doc.quiz && S.quizCount < 2 && Math.random() < 0.5) S.quizPending = S.t + 0.5; // 진료실에 들른 김에
     },
   },
   chore: {
@@ -1248,7 +1251,7 @@ function updateActor(a, dt) {
     const t = a.queue.shift();
     const def = ACT[t.kind];
     let spot;
-    if (def.desk) { a.slot = deskSlotFor(a); spot = a.slot.spot; }
+    if (def.desk) { a.slot = deskSlotFor(a); spot = a.slot && a.slot.spot; }
     else { releaseDesk(a); spot = def.where(t, a); }
     if (!spot) { if (a === player) renderQueue(); return; }
     a.cur = { a: t, phase: 'walk', t: 0, dur: 1, spot };
@@ -1318,12 +1321,15 @@ function mateThink(m) {
     return 1;
   };
   const cands = [];
+  const deskOk = deskFreeFor(m);
+  const lobbyLoad = [...S.patients.values()].filter((p) => p.state === 'wait' || p.state === 'pay').length;
+  const deskFor = (p) => deskOk && (!m.isLead || lobbyLoad >= 4 || p.patience / p.max < 0.35);
   for (const p of S.patients.values()) {
     if (p.busy || (S.directive && S.directive.pid === p.id)) continue;
     const urg = (1 - p.patience / p.max) * 30;
-    if (p.type === 'emergency' && p.state === 'wait') { if (!claimedBy('call119', p.id)) cands.push({ s: 200, t: { kind: 'call119', pid: p.id } }); }
-    else if (p.state === 'wait' && !claimedBy('register', p.id)) cands.push({ s: (40 + urg) * w('register'), t: { kind: 'register', pid: p.id } });
-    else if (p.state === 'pay' && !p.path.length && !claimedBy('pay', p.id)) cands.push({ s: (48 + urg) * w('pay'), t: { kind: 'pay', pid: p.id } });
+    if (p.type === 'emergency' && p.state === 'wait') { if (deskOk && !claimedBy('call119', p.id)) cands.push({ s: 200, t: { kind: 'call119', pid: p.id } }); }
+    else if (p.state === 'wait' && deskFor(p) && !claimedBy('register', p.id)) cands.push({ s: (40 + urg) * w('register'), t: { kind: 'register', pid: p.id } });
+    else if (p.state === 'pay' && !p.path.length && deskFor(p) && !claimedBy('pay', p.id)) cands.push({ s: (48 + urg) * w('pay'), t: { kind: 'pay', pid: p.id } });
     else if (p.state === 'beddone' && !claimedBy('unbed', p.id)) cands.push({ s: (70 + urg) * w('unbed'), t: { kind: 'unbed', pid: p.id } });
     else if (p.state === 'tobed' && !claimedBy('setup', p.id)) cands.push({ s: (65 + urg) * w('setup'), t: { kind: 'setup', pid: p.id }, need: p.order === 'iv' ? p.med : null });
     else if (p.state === 'order' && p.order !== 'blood' && !p.path.length && !claimedBy('treat', p.id)) {
@@ -1331,8 +1337,8 @@ function mateThink(m) {
       cands.push({ s: (55 + urg) * w('treat'), t: { kind: 'treat', pid: p.id }, need: p.order === 'shot' || p.order === 'iv' ? p.med : null });
     }
   }
-  if (S.phone.ringing && !claimedBy('phone')) cands.push({ s: 52 * w('phone'), t: { kind: 'phone' } });
-  if (S.charts >= (f === 'chart' ? 1 : 4) && !claimedBy('chart')) cands.push({ s: (20 + S.charts * 4) * w('chart'), t: { kind: 'chart' } });
+  if (deskOk && S.phone.ringing && !claimedBy('phone')) cands.push({ s: 52 * w('phone'), t: { kind: 'phone' } });
+  if (deskOk && S.charts >= (f === 'chart' ? 1 : 4) && !claimedBy('chart')) cands.push({ s: (20 + S.charts * 4) * w('chart'), t: { kind: 'chart' } });
   if (!cands.length) return;
   cands.sort((x, y) => y.s - x.s);
   const best = cands[0];
@@ -1367,7 +1373,7 @@ function issueDirective() {
   choreOv.querySelector('.e-tx').textContent = `팀장님 지시: ${d.label}`;
   choreOv.style.display = '';
   say(lead, `김 선생, ${d.label}`, 'lead', 3);
-  hint('directive', '📣 팀장님 지시! 아래 할 일 줄의 남색 칩을 탭하면 처리하러 가요. 제때 안 하면 멘탈과 평가가 깎여요.');
+  hint('directive', '📣 팀장님 지시! 아래 "지시" 줄의 남색 칩을 탭하면 할 일로 내려가요. 제때 안 하면 멘탈과 평가가 깎여요.');
 }
 function checkDirective(t) {
   const d = S.directive;
@@ -1462,7 +1468,7 @@ function updateErrand(dt) {
       errandOv.style.display = '';
       say(doctor, `김 선생~ ${e.label}`, 'doc');
       setTimeout(() => { if (S && lead && !S.ended) say(lead, pick(LEAD_SWEET), 'sweet', 2.6); }, 1300);
-      hint('errand', '🧑‍⚕️ 원장님 호출! 아래 할 일 줄의 노란 칩이나 원장님을 탭하면 처리하러 가요. 무시하면 멘탈이 크게 깎여요. (간호사 66.2%가 의사 업무를 요구받은 경험)');
+      hint('errand', '🧑‍⚕️ 원장님 호출! 아래 "지시" 줄의 노란 칩이나 원장님을 탭하면 할 일로 내려가요. 무시하면 멘탈이 크게 깎여요. (간호사 66.2%가 의사 업무를 요구받은 경험)');
     }
     return;
   }
@@ -1479,12 +1485,13 @@ function updateErrand(dt) {
 }
 function updateDoctorEvents() {
   if (S.closed) return;
-  // 최원장의 기습 질문
-  if (S.quizAt > 0 && S.t >= S.quizAt && !S.modal && !isLunch() && !(player.cur && /pick|mini/.test(player.cur.phase))) {
-    S.quizCount++;
-    S.quizAt = S.quizCount < 2 ? S.t + rand(55, 85) : -1;
-    say(doctor, '김 선생, 잠깐! 이거 알아?', 'doc', 2.4);
-    openQuiz(`${S.doc.name}의 기습 질문`, (ok) => {
+  // 최원장의 질문: 진료실에 들렀을 때(심부름 후) 또는 하루 한 번 뜬금없이
+  const due = (S.quizPending > 0 && S.t >= S.quizPending) || (S.quizAt > 0 && S.t >= S.quizAt);
+  if (due && S.quizCount < 2 && !S.modal && !isLunch() && !(player.cur && /pick|mini/.test(player.cur.phase))) {
+    const surprise = S.quizAt > 0 && S.t >= S.quizAt;
+    S.quizCount++; S.quizPending = -1; if (surprise) S.quizAt = -1;
+    say(doctor, surprise ? '김 선생! 지나가다 생각났는데…' : '말 나온 김에, 이거 알아?', 'doc', 2.2);
+    openQuiz(`${S.doc.name}의 ${surprise ? '뜬금없는' : '기습'} 질문`, (ok) => {
       if (ok) { S.body.mental = Math.min(maxStat(), S.body.mental + 3); S.stats.evalAdj += 8; S.stats.quizOk++; toast(`🧑‍⚕️ ${S.doc.name}: “오, 제법인데?”`, 'good'); }
       else { S.body.mental -= 10; S.stats.evalAdj -= 4; S.stats.quizBad++; toast(`🧑‍⚕️ ${S.doc.name}: “그것도 몰라? 간호사 맞아?” (멘탈 −10)`, 'warn'); }
     });
@@ -1656,7 +1663,7 @@ $('#btn-blood-stop').addEventListener('click', () => {
   $('#blood-anger').style.width = clamp((1 - p.patience / p.max) * 100, 0, 100) + '%';
   vibrate(120);
   blood.speed *= 1.08;
-  if (p.patience <= 0) {
+  if (false) {
     blood.open = false;
     setTimeout(() => { closeBlood(); if (player.cur === c) { player.cur = null; renderQueue(); } p.busy = false; if (S.patients.has(p.id)) leaveAngry(p); }, 600);
   }
@@ -1696,10 +1703,20 @@ function updatePatients(dt) {
     if (p.busy || S.D.cur === p.id || p.path.length) continue;
     let m = { wait: tv, examq: 0.45 * tv, order: 1, tobed: 0.6, bed: 0, beddone: 1.6, pay: 1 }[p.state] ?? 1;
     if (p.type === 'emergency') m = 1;
+    const treated = !!p.order; // 진료를 받았으면 수납 전엔 절대 안 감
     p.patience -= dt * m;
+    if (treated && p.patience < 0) {
+      p.patience = 0;
+      p.complainT = (p.complainT || 6) - dt;
+      if (p.complainT <= 0) {
+        p.complainT = rand(9, 13);
+        save.rating -= 0.03; S.body.mental -= 2;
+        say(p, pick(['언제까지 기다려요!', '계산은 언제 해 줘요?', '나 바쁜 사람이에요!']), '', 2);
+      }
+    }
     const r = p.patience / p.max;
     p.barEl.style.width = clamp(r * 100, 0, 100) + '%';
-    p.barEl.className = r < 0.25 ? 'low' : r < 0.55 ? 'mid' : '';
+    p.barEl.className = r <= 0 ? 'low over' : r < 0.25 ? 'low' : r < 0.55 ? 'mid' : '';
     if (p.rude && p.state !== 'bed') {
       p.yellT -= dt;
       if (p.yellT <= 0) {
@@ -1711,7 +1728,8 @@ function updatePatients(dt) {
         hint('rude', '💢 진상 환자는 계속 폭언을 해서 멘탈을 깎아요. 빨리 처리해서 보내는 게 상책… (현실에서도 피해 간호사 71.8%가 무대응)');
       }
     }
-    if (p.patience <= 0) leaveAngry(p);
+    // 게이지가 바닥난 뒤에도 잠시(약 7초) 버티다가 떠남 · 진료 전 환자만
+    if (!treated && p.patience <= -(p.type === 'emergency' ? 2 : 7)) leaveAngry(p);
   }
   for (const p of S.patients.values()) {
     if (!p.ov) continue;
@@ -1784,7 +1802,7 @@ function updatePhone(dt) {
   }
 }
 function updateSpawns() {
-  if (S.closed || S.intakeClosed) return;
+  if (S.closed || S.intakeClosed || isLunch()) return;
   const gm = gameMinute();
   if (gm >= S.intakeEnd) { S.intakeClosed = true; toast(`🚪 ${fmtTime(S.intakeEnd)} 접수 마감! 이제 새 환자는 안 받아요`); return; }
   if (gm >= LUNCH_S - 10 && gm < S.lunchEnd) {
@@ -1799,7 +1817,7 @@ function updateSpawns() {
   }
   const rush = gm >= 12 * 60 && gm < LUNCH_S - 10;
   if (S.t >= S.spawnAt) {
-    const base = Math.max(3.6, 7.0 - (save.day - 1) * 0.5);
+    const base = save.day === 1 ? 9.0 : save.day === 2 ? 7.6 : Math.max(3.6, 7.4 - (save.day - 2) * 0.5);
     S.spawnAt = S.t + base * (rush ? 0.6 : 1) * rand(0.7, 1.3);
     if (lobbyWaiting() >= 9) { save.rating -= 0.05; toast('🚪 대기 공간이 꽉 차서 환자가 그냥 돌아갔어요', 'warn'); }
     else {
@@ -1807,7 +1825,7 @@ function updateSpawns() {
         : gm < 10.5 * 60 ? [['grandma', 4], ['grandpa', 3], ['normal', 2], ['kid', 1]]
         : [['normal', 3], ['grandma', 2], ['grandpa', 2], ['kid', 2], ['worker', 1]];
       const ty = weightedPick(table);
-      spawnPatient(ty, { rude: S.t > 25 && ty !== 'kid' && Math.random() < (save.day === 1 ? 0.06 : 0.1 + save.day * 0.015) });
+      spawnPatient(ty, { rude: S.t > 25 && ty !== 'kid' && Math.random() < (save.day === 1 ? 0.03 : 0.08 + save.day * 0.015) });
     }
   }
   if (S.emergencyAt > 0 && S.t >= S.emergencyAt) {
@@ -1843,7 +1861,7 @@ function updateLunch() {
     S.lunchToast = true;
     const left = S.patients.size;
     toast(left ? `🍱 13시 점심시간! …인데 아직 환자 ${left}명이 남았다` : '🍱 13시 점심시간! 탕비실에서 밥 먹을 수 있어요', left ? 'warn' : 'good');
-    if (S.doc.biz) setTimeout(() => { say(doctor, '점심은 30분만 먹고 와요~', 'doc', 3); toast(`🧑‍⚕️ ${S.doc.name}: “점심은 30분이면 충분하지? 1시 반부터 진료해.”`, 'warn'); }, 900);
+    if (S.doc.biz) setTimeout(() => { say(doctor, '밥은 빨리빨리 먹고 와요~', 'doc', 2.4); toast(`🧑‍⚕️ ${S.doc.name}: “점심 먹고 와서 기록 정리 다 해 놔요~”`, 'warn'); }, 900);
     hint('lunch', '🍱 점심시간에는 새 환자가 없고, 탕비실에서 팀장님 눈치 없이 밥을 먹을 수 있어요.');
   }
   if (isLunch()) {
@@ -1871,10 +1889,12 @@ function renderRequests() {
   const has = (k, pid) => (player.cur && player.cur.a.kind === k && player.cur.a.pid === pid) || player.queue.some((t) => t.kind === k && t.pid === pid);
   if (S.directive) items.push({ id: 'd', cls: '', ic: 'megaphone', label: `팀장 · ${S.directive.label}`, r: S.directive.left / S.directive.max, q: has(S.directive.kind, S.directive.pid) });
   if (S.errand) items.push({ id: 'e', cls: 'doc', ic: 'stetho', label: `원장 · ${S.errand.label}`, r: S.errand.left / S.errand.max, q: has('errand') || S.errand.answering });
-  const key = items.map((i) => i.id + i.label + i.q).join('|');
+  const shown = items.filter((i) => !i.q);
+  $('#req-row').classList.toggle('hidden', !shown.length);
+  const key = shown.map((i) => i.id + i.label).join('|');
   if (reqEl.dataset.k !== key) {
     reqEl.dataset.k = key;
-    reqEl.innerHTML = items.map((i) => `<button class="req ${i.cls} ${i.q ? 'queued' : ''}" data-req="${i.id}">${icon(i.ic)}<span>${i.label}</span><i></i></button>`).join('');
+    reqEl.innerHTML = shown.map((i) => `<button class="req ${i.cls}" data-req="${i.id}">${icon(i.ic)}<span>${i.label}</span><i></i></button>`).join('');
   }
   items.forEach((i) => { const b = reqEl.querySelector(`[data-req="${i.id}"] i`); if (b) b.style.transform = `scaleX(${Math.max(0, i.r)})`; });
 }
@@ -2162,24 +2182,25 @@ function sleepAndNext() {
   save.stamina = clamp(Math.round(save.stamina + recS - otPen), 30, mx);
   save.mental = clamp(Math.round(save.mental + recM), 20, mx);
   save.lastDoc = S.doc.id;
+  $('#screen-evening').classList.add('hidden');
+  const eve = eveningStory(dayResult, eveChoice);
   save.day++;
   persist();
-  $('#screen-evening').classList.add('hidden');
   briefDoc = { ...pickDoctor(), _day: save.day };
-  playStory(briefDoc, openBrief);
+  playScene(eve, () => playStory(briefDoc, openBrief));
 }
 
 let briefDoc = null;
 const preview = { beds: [], on: false };
 const DOC_PLAN = {
-  biz: '최원장님은 회전율이 최우선이에요. 점심은 30분, 마감 연장도 각오하세요. 기습 질문에 대비해 기본기를 떠올려 두고, 초코바로 배를 채워 두세요.',
+  biz: '최원장님은 회전율이 최우선이에요. 마감 연장도 각오하세요. 진료실 심부름을 가면 질문이 날아올 수 있으니 기본기를 떠올려 두세요.',
   kind: '여유로운 날이에요. 기록을 그때그때 정리하고, 점심도 꼭 챙겨 드세요.',
   slow: '진료가 길어 접수·수납실이 붐벼요. 후배는 <b>접수·수납 위주</b>로, 대기 환자 인내심을 지켜 주세요.',
   fast: '진료가 빨라 주사실이 금방 차요. 후배를 <b>처치 위주</b>로 돌리고, 처방 변경이 잦으니 약은 1~2개씩만 챙기세요.',
   creep: '불쾌한 말에 대비해 멘탈을 아껴 두세요. 초코바·간식으로 멘탈과 체력을 미리 채워 두는 게 좋아요.',
 };
 function estPatients() {
-  const base = Math.max(3.6, 7.0 - (save.day - 1) * 0.5);
+  const base = save.day === 1 ? 9.0 : save.day === 2 ? 7.6 : Math.max(3.6, 7.4 - (save.day - 2) * 0.5);
   return Math.round(147 / base + (16.7 / base) * (1 / 0.6 - 1));
 }
 function minimapSVG(doc) {
@@ -2225,7 +2246,7 @@ function renderBriefMap(doc) {
   const nJ = juniorsFor(save.day).length;
   const beds = Math.min(4, save.clinic.ivBeds) + Math.min(4, save.clinic.heatBeds);
   const evs = [
-    ['drop', '채혈 1~2건'], ['lunch', doc.biz ? '점심 30분만' : '점심 13~14시', doc.biz ? 1 : 0], ['clock', '17:30 접수 마감'], ['megaphone', '팀장님 지시'],
+    ['drop', '채혈 1~2건'], ['lunch', '점심 13~14시 (신규 환자 없음)'], ['clock', '17:30 접수 마감'], ['megaphone', '팀장님 지시'],
   ];
   if (doc.quiz) evs.push(['book', '원장님 기습 질문', 1]);
   if (doc.biz) evs.push(['clock', '마감 연장 가능', 1]);
@@ -2420,7 +2441,44 @@ const CS = { active: false, renderer: null, scene: null, camera: null, cast: {},
 const WHO = {
   boss: { name: '최원장', color: '#c9a227' }, lead: { name: '한 팀장', color: '#2d3e66' }, me: { name: '나', color: '#ff6257' },
   park: { name: '박 선생', color: '#4a90d9' }, lee: { name: '이 선생', color: '#e84393' }, sub: { name: '', color: '#3b6fb6' },
+  friend: { name: '수진 (친구)', color: '#8b6cf0' },
 };
+// ---- 음성 (Web Speech API) ----
+const VOICE = { boss: [0.72, 0.92], sub: [0.85, 0.95], lead: [1.12, 1.0], me: [1.3, 0.95], park: [1.45, 1.02], lee: [1.2, 0.92], friend: [1.4, 1.05], narr: [1.0, 0.9] };
+let koVoice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices().filter((v) => /^ko/i.test(v.lang));
+  koVoice = vs.find((v) => /yuna|sora|heami|google/i.test(v.name)) || vs[0] || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speakLine(who, text, onEnd) {
+  if (save.muted || !('speechSynthesis' in window)) { onEnd && onEnd(false); return; }
+  speechSynthesis.cancel();
+  let t = text.replace(/\([^)]*\)\s*/g, '').trim();          // 지문 (정색하며) 제거
+  if (!t) t = text.replace(/[()]/g, '');                    // 속마음 대사는 괄호만 벗겨 읽기
+  t = t.replace(/[“”]/g, '').replace(/…/g, ', ').replace(/~/g, '');
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice;
+  const [pitch, rate] = VOICE[who] || VOICE.narr;
+  u.pitch = pitch; u.rate = rate;
+  let fired = false;
+  const fin = () => { if (!fired) { fired = true; onEnd && onEnd(true); } };
+  u.onend = fin; u.onerror = fin;
+  speechSynthesis.speak(u);
+}
+function renderMute() {
+  const b = $('#cs-mute');
+  b.innerHTML = icon(save.muted ? 'mute' : 'volume');
+  b.classList.toggle('off', save.muted);
+}
+$('#cs-mute').addEventListener('click', (e) => {
+  e.stopPropagation();
+  save.muted = !save.muted; persist(); renderMute();
+  if (save.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+  else if (CS.active && CS.cur) speakLine(CS.cur.who, CS.cur.text, () => { CS.spoken = true; });
+});
+renderMute();
 function csInit() {
   if (CS.renderer) return;
   CS.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -2433,6 +2491,7 @@ function csInit() {
   addEventListener('resize', resize); resize();
 }
 function buildDiorama(set) {
+  if (set === 'room' || set === 'pocha') return buildNightSet(set);
   const sc = new THREE.Scene();
   sc.add(new THREE.HemisphereLight(0xffffff, 0x9fc9be, 1.4));
   const key = new THREE.DirectionalLight(0xfff3e0, 1.9);
@@ -2467,6 +2526,95 @@ function buildDiorama(set) {
     box(0.45, 1.3, 0.4, '#2bb5a0', 2.3, 0.65, 0.3, sc);
   }
   return sc;
+}
+function buildNightSet(set) {
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xb8c6ff, 0x3a2a22, set === 'room' ? 0.75 : 0.9));
+  const key = new THREE.DirectionalLight(0xffd9a0, 1.2);
+  key.position.set(3, 7, 5); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 });
+  sc.add(key);
+  const lamp = new THREE.PointLight(0xffc27a, 6, 7, 1.6);
+  sc.add(lamp);
+  cyl(4.4, 4.6, 0.5, '#5a4636', 0, -0.26, 0, sc, 48).receiveShadow = true;
+  if (set === 'room') {
+    const small = HOMES[save.home].max <= 100;
+    cyl(4.2, 4.2, 0.04, '#d8b48a', 0, 0.01, 0, sc, 48).receiveShadow = true;
+    box(6.2, 2.6, 0.18, small ? '#e8e2d6' : '#f4efe6', 0, 1.3, -2.7, sc);
+    box(0.18, 2.6, 4.6, '#e2dbcd', -3.0, 1.3, -0.4, sc).rotation.y = 0.12;
+    if (!small) { box(1.5, 1.0, 0.06, '#23395b', 1.4, 1.65, -2.6, sc, { emissive: '#1b2b4a', emissiveIntensity: 0.6 }); sph(0.09, '#fff6c2', 1.75, 1.95, -2.55, sc, { emissive: '#fff6c2', emissiveIntensity: 1 }); }
+    box(1.3, 0.42, 2.2, '#ffffff', -1.6, 0.21, -1.0, sc); box(1.25, 0.12, 1.5, '#9ec9f0', -1.6, 0.48, -0.6, sc); box(0.8, 0.12, 0.4, '#ffffff', -1.6, 0.5, -1.85, sc);
+    box(1.4, 0.75, 0.7, '#a07850', 1.3, 0.375, -1.8, sc);
+    cyl(0.06, 0.12, 0.4, '#333333', 1.7, 0.95, -1.95, sc, 8);
+    const shade = mesh(new THREE.ConeGeometry(0.22, 0.25, 14, 1, true), '#ffcf7a', { emissive: '#ffb347', emissiveIntensity: 0.9, side: THREE.DoubleSide });
+    shade.position.set(1.7, 1.25, -1.95); sc.add(shade);
+    lamp.position.set(1.6, 1.4, -1.6);
+    box(0.5, 0.04, 0.35, '#ffffff', 1.1, 0.77, -1.75, sc);
+    box(0.7, 0.9, 0.05, '#f2a65a', -0.2, 1.6, -2.6, sc); // 포스터
+    box(0.45, 0.35, 0.3, '#7fd3c4', 2.4, 0.18, 0.4, sc); // 벗어 둔 스크럽 가방
+  } else {
+    cyl(4.2, 4.2, 0.04, '#8b6b4a', 0, 0.01, 0, sc, 48).receiveShadow = true;
+    box(6.2, 2.6, 0.18, '#e85d3f', 0, 1.3, -2.7, sc, { transparent: true, opacity: 0.92 });
+    box(0.18, 2.6, 4.6, '#d9502f', -3.0, 1.3, -0.4, sc, { transparent: true, opacity: 0.92 }).rotation.y = 0.12;
+    cyl(0.9, 0.9, 0.08, '#c0c0c0', 0, 0.72, 0, sc, 24); cyl(0.08, 0.12, 0.7, '#777777', 0, 0.35, 0, sc, 8);
+    cyl(0.35, 0.3, 0.08, '#e53935', -0.2, 0.8, 0.1, sc, 16); // 떡볶이
+    for (const [x, c] of [[0.35, '#4caf50'], [0.55, '#4caf50']]) cyl(0.06, 0.07, 0.26, c, x, 0.89, -0.2, sc, 10); // 초록병
+    sph(0.22, '#ffb347', 0, 2.2, -1.2, sc, { emissive: '#ff9a3c', emissiveIntensity: 1.2 });
+    lamp.position.set(0, 2.0, -0.8);
+    for (const x of [-1.1, 1.1]) cyl(0.25, 0.25, 0.45, '#3d6fb6', x, 0.23, 0.1, sc, 12);
+  }
+  return sc;
+}
+function eveningStory(r, choice) {
+  const st = r.st, home = HOMES[save.home].name;
+  const thoughts = [];
+  if (st.rude >= 2) thoughts.push({ who: 'me', text: '(“여기 왜 이렇게 느려요!” …그 목소리가 아직도 귓가에 맴돈다.)' });
+  if (st.taeum) thoughts.push({ who: 'me', text: '(“신규가 간이 크네.” …내가 그렇게 잘못했나.)' });
+  if (st.quizBad) thoughts.push({ who: 'me', text: '(“그것도 몰라?” 얼굴이 화끈거렸다. 오늘은 책 좀 봐야겠다.)' });
+  if (r.overtime + r.chartOT > 30) thoughts.push({ who: 'me', text: `(오늘도 공짜 야근 ${r.overtime + r.chartOT}분. 시급으로 치면… 아니다, 계산하지 말자.)` });
+  if (!thoughts.length) thoughts.push({ who: 'me', text: '(오늘은 그럭저럭 버텼다. 나, 조금은 늘었나?)' });
+  const meAt = (x, z, rot, pose = 'sit') => ({ k: 'me', x, z, rot, pose, look: 'home' });
+  if (choice === 'report') return {
+    title: `퇴근 후 · ${home} · 경위서`, set: 'room', cast: [meAt(1.25, -0.95, Math.PI)],
+    steps: [
+      { who: 'narr', text: '밤 11시. 책상 위에 경위서 양식이 놓여 있다.' },
+      { who: 'me', text: '(“처방 확인 미흡으로 인하여…” 몇 번을 다시 써도 손이 떨린다.)' },
+      { who: 'me', text: '(바빠서 그랬다고 쓰면… 안 되겠지.)' },
+      ...thoughts.slice(0, 1),
+      { who: 'narr', text: '새벽 1시. 결국 네 시간밖에 못 잤다.' },
+    ],
+  };
+  if (choice === 'friend') return {
+    title: '퇴근 후 · 포장마차', set: 'pocha', cast: [meAt(-1.1, 0.1, Math.PI / 2), { k: 'friend', x: 1.1, z: 0.1, rot: -Math.PI / 2, pose: 'sit' }],
+    steps: [
+      { who: 'friend', text: '야, 얼굴이 왜 이래? 오늘 무슨 일 있었어?' },
+      { who: 'me', text: st.rude || st.taeum ? '환자한테 소리 듣고, 팀장님한테 혼나고… 그냥 다 그래.' : '그냥… 하루 종일 뛰어다녔어. 밥도 못 먹고.' },
+      { who: 'friend', text: '간호사 다들 그렇다더라. 그래도 너 몸이 먼저야. 힘들면 그만둬도 돼.' },
+      { who: 'me', text: '…그래도 아직은 버텨 볼래. 고맙다고 해 주는 할머니도 있었거든.' },
+      { who: 'friend', text: '그래, 오늘 떡볶이는 내가 쏜다! 많이 먹어.' },
+      { who: 'narr', text: '오랜만에 크게 웃었다. 마음이 조금 가벼워졌다.' },
+    ],
+  };
+  if (choice === 'diary') return {
+    title: `퇴근 후 · ${home} · 일기`, set: 'room', cast: [meAt(1.25, -0.95, Math.PI)],
+    steps: [
+      { who: 'narr', text: `DAY ${save.day}의 일기` },
+      { who: 'me', text: `(오늘은 환자 ${st.served}명을 봤다.${st.angry ? ` 화나서 가신 분이 ${st.angry}명… 죄송했다.` : ' 화나서 간 사람은 없었다!'})` },
+      ...thoughts.slice(0, 2),
+      { who: 'me', text: '(그래도 내일은, 오늘보다 조금 더 잘할 수 있을 거야.)' },
+      { who: 'narr', text: '일기장을 덮고 알람을 맞췄다. 06:50.' },
+    ],
+  };
+  return {
+    title: `퇴근 후 · ${home}`, set: 'room', cast: [meAt(-1.6, -0.6, 0)],
+    steps: [
+      { who: 'narr', text: `밤 9시. ${home}에 도착했다.` },
+      { who: 'me', text: '(배달 앱을 열었다. 최소 주문 금액… 그래도 오늘은 시킨다.)' },
+      ...thoughts.slice(0, 2),
+      { who: 'me', text: '(내일은… 조금 덜 바빴으면.)' },
+      { who: 'narr', text: '불을 끄자마자 잠이 들었다.' },
+    ],
+  };
 }
 function storyFor(doc) {
   const day = save.day;
@@ -2510,6 +2658,8 @@ function storyFor(doc) {
       { who: 'boss', text: '오늘은 환자 좀 많이 받아 보자고. 점심은 30분이면 충분하지?' },
       { who: 'me', text: '(…어제도 점심 제대로 못 먹었는데)' },
       { who: 'lead', text: '네~ 원장님! 저희가 알아서 할게요 호호.' },
+      { who: 'boss', text: '아 그리고 김 선생, 어제 하나 물어보려다 말았는데.' },
+      { quiz: 'boss', who: 'boss', ok: '흠, 공부는 했나 보네.', bad: '하… 내일까지 찾아봐.' },
     ],
   };
   if (day === 3) return {
@@ -2546,7 +2696,8 @@ function storyFor(doc) {
     [{ who: 'boss', text: '토요일 진료도 해 볼까? …농담이야, 아직은.' }, { who: 'me', text: '(아직은…?)' }],
   ];
   const steps = [{ who: 'narr', text: `DAY ${day} · 아침 조회` }, ...pick(pool)];
-  if (Math.random() < 0.5) steps.push({ who: 'lead', text: '자, 아침 퀴즈. 이것도 모르면 곤란해요.' }, { quiz: 'lead', who: 'lead', ok: '…맞았네요. 오늘도 그렇게 해요.', bad: '하… 기본부터 다시 봐요.' });
+  if (Math.random() < 0.5) steps.push({ who: 'boss', text: '아, 김 선생. 출근했으면 몸풀기로 하나 물어보자.' }, { quiz: 'boss', who: 'boss', ok: '오케이. 오늘도 그렇게만 해.', bad: '아침부터 이러면 곤란한데?' });
+  else if (Math.random() < 0.5) steps.push({ who: 'lead', text: '자, 아침 퀴즈. 이것도 모르면 곤란해요.' }, { quiz: 'lead', who: 'lead', ok: '…맞았네요. 오늘도 그렇게 해요.', bad: '하… 기본부터 다시 봐요.' });
   return { title: `DAY ${day} · 아침 조회`, set: 'station', cast: castBase(jCast), steps };
 }
 function makeCastModel(k, c, doc) {
@@ -2555,11 +2706,13 @@ function makeCastModel(k, c, doc) {
   if (k === 'lead') return makeLead();
   if (k === 'park') return makeNurse(MATE_DEFS[0].look);
   if (k === 'lee') return makeNurse(MATE_DEFS[1].look);
+  if (k === 'friend') return makeChibi({ top: '#f2a65a', pants: '#3e4a5a', shoes: '#222222', hair: '#5a3b22', hairLen: 0.55, eyeSquash: 0.9, brows: '#5a3b22', browAngle: 0.1 });
+  if (c.look === 'home') return makeChibi({ top: '#b8d8ff', sleeve: '#b8d8ff', pants: '#9ec2ef', shoes: '#f3f3f3', hair: '#3a2a22', hairLen: 0.52, eyeSquash: 0.4, brows: '#3a2a22', browAngle: -0.38 });
   if (c.look === 'interview') return makeChibi({ top: '#f4f4f4', pants: '#34405a', shoes: '#222222', hair: '#3a2a22', hairLen: 0.52, eyeSquash: 0.9, brows: '#3a2a22', browAngle: -0.2 });
   return makeNurse();
 }
-function playStory(doc, done) {
-  const story = storyFor(doc);
+function playStory(doc, done) { playScene(storyFor(doc), done); }
+function playScene(story, done) {
   if (!story) { done(); return; }
   csInit();
   CS.scene = buildDiorama(story.set);
@@ -2592,8 +2745,12 @@ function csShow(who, text) {
   if (who === 'narr') { w.textContent = ''; } else { w.textContent = WHO[who].name; w.style.setProperty('--who', WHO[who].color); }
   CS.speaker = who === 'narr' ? null : who;
   CS.typing = { text, n: 0 };
+  CS.cur = { who, text };
   $('#cs-text').textContent = '';
   CS.wait = 0;
+  CS.spoken = save.muted || !('speechSynthesis' in window);
+  CS.speakStart = performance.now();
+  speakLine(who, text, () => { CS.spoken = true; });
 }
 function csNext() {
   if (quiz.open) return;
@@ -2603,7 +2760,7 @@ function csNext() {
   if (st.quiz) {
     if (st.pre) { CS.steps.splice(CS.i, 0, { who: st.who, text: st.pre }); delete st.pre; csShow(st.who, CS.steps[CS.i].text); return; }
     CS.typing = null;
-    openQuiz(st.quiz === 'boss' ? '최원장의 면접 질문' : '한 팀장의 아침 퀴즈', (ok) => {
+    openQuiz(st.quiz === 'boss' ? (save.day === 1 ? '최원장의 면접 질문' : '최원장의 아침 질문') : '한 팀장의 아침 퀴즈', (ok) => {
       if (ok) { save.mental = Math.min(maxStat(), save.mental + 3); save.evalPts += 5; } else { save.mental = Math.max(20, save.mental - 5); }
       persist();
       CS.steps.splice(CS.i + 1, 0, { who: st.who, text: ok ? st.ok : st.bad });
@@ -2616,6 +2773,7 @@ function csNext() {
 function csEnd() {
   if (!CS.active) return;
   CS.active = false;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
   $('#cutscene').classList.add('hidden');
   const d = CS.done; CS.done = null;
   if (d) d();
@@ -2624,14 +2782,20 @@ $('#cutscene').addEventListener('click', (e) => {
   if (e.target.closest('#cs-skip')) { if (!quiz.open) csEnd(); return; }
   if (!CS.active || quiz.open) return;
   if (CS.typing && CS.typing.n < CS.typing.text.length) { CS.typing.n = CS.typing.text.length; $('#cs-text').textContent = CS.typing.text; return; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
   csNext();
 });
 function csFrame(dt, t) {
   CS.t += dt;
   if (CS.typing && !quiz.open) {
     const tp = CS.typing;
-    if (tp.n < tp.text.length) { tp.n = Math.min(tp.text.length, tp.n + dt * 30); $('#cs-text').textContent = tp.text.slice(0, Math.floor(tp.n)); }
-    else if ((CS.wait += dt) > Math.max(2.4, tp.text.length * 0.07)) csNext();
+    if (tp.n < tp.text.length) { tp.n = Math.min(tp.text.length, tp.n + dt * 14); $('#cs-text').textContent = tp.text.slice(0, Math.floor(tp.n)); }
+    else {
+      CS.wait += dt;
+      const readT = Math.max(3.2, tp.text.length * 0.12);           // 음소거일 때 읽는 시간
+      const voiceDone = CS.spoken || (performance.now() - CS.speakStart) / 1000 > tp.text.length * 0.3 + 4; // 음성 안전장치
+      if (save.muted ? CS.wait > readT : (voiceDone && CS.wait > 1.0)) csNext();
+    }
   }
   // 캐릭터 연기
   const sp = CS.speaker && CS.cast[CS.speaker === 'boss' && CS.cast.sub ? 'sub' : CS.speaker];

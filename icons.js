@@ -77,6 +77,8 @@ export const ICONS = {
   sleep: `<path d="M3 18.5V8M3 13.5h18v5M21 18.5v-2.5"/><path d="M13 5h4l-4 4.5h4" stroke-width="1.6"/><circle cx="7" cy="10.8" r="1.6"/>`,
   sun: `<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>`,
   warning: `<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01" stroke-width="2.6"/>`,
+  volume: `<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>`,
+  mute: `<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>`,
   check: `<path d="M5 12.5l4.5 4.5L19 7.5"/>`,
   x: `<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>`,
   play: `<path d="M7 4.5v15l12-7.5z" ${F}/>`,
