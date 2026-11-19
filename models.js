@@ -149,7 +149,7 @@ export function makeNurse(o = {}) {
   return n;
 }
 
-// --- 간호실장: 원장님께는 싹싹, 아랫사람에겐 모진 ---
+// --- 간호팀장: 원장님께는 싹싹, 아랫사람에겐 모진 ---
 export function makeLead() {
   const l = makeChibi({ top: '#2d3e66', sleeve: '#2d3e66', pants: '#f0f0f0', shoes: '#222222', hair: '#1d1715', hairLen: 0.56, eyeSquash: 0.55, brows: '#1d1715', browAngle: 0.3, mouth: '#c0392b' });
   for (const s of [-1, 1]) { const b = sph(0.15, '#1d1715', s * 0.2, -0.08, -0.03, l.head); b.scale.set(0.55, 1.2, 1); }
@@ -158,6 +158,7 @@ export function makeLead() {
   box(0.09, 0.05, 0.01, '#ffd166', -0.08, 0.52, 0.215, l.body); // 금색 명찰
   sph(0.035, '#ffffff', 0, -0.3, 0.06, l.arms[1]); // 볼펜 든 손
   box(0.18, 0.24, 0.02, '#c8a165', 0, -0.33, 0.08, l.arms[0]); // 클립보드
+  addHeldSlots(l);
   return l;
 }
 

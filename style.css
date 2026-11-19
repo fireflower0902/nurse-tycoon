@@ -545,3 +545,39 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 .v-top span { white-space: nowrap; overflow: hidden; }
 .v-top { gap: 3px; }
 .vital.bladder .v-top span { letter-spacing: -0.04em; }
+
+/* ===== 스토리 디오라마 ===== */
+#cutscene { position: fixed; inset: 0; z-index: 95; background: radial-gradient(120% 90% at 50% 30%, #2b4a44, #0f1f1c); }
+#cs-stage, #cs-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cs-bar { position: absolute; left: 0; right: 0; height: 9vh; background: #000; z-index: 2; transition: transform .6s ease; }
+.cs-bar.top { top: 0; } .cs-bar.bottom { bottom: 0; }
+#cutscene.intro .cs-bar.top { transform: translateY(-100%); }
+#cutscene.intro .cs-bar.bottom { transform: translateY(100%); }
+.cs-head { position: absolute; top: calc(9vh + 10px + env(safe-area-inset-top)); left: 14px; right: 14px; z-index: 3; display: flex; align-items: center; justify-content: space-between; }
+#cs-title { color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .02em; background: rgba(255,255,255,.12); padding: 6px 12px; border-radius: 999px; backdrop-filter: blur(6px); }
+#cs-skip { color: rgba(255,255,255,.85); font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.35); }
+#cs-box { position: absolute; left: 12px; right: 12px; bottom: calc(9vh + 12px + env(safe-area-inset-bottom)); z-index: 3; max-width: 460px; margin: 0 auto; background: rgba(255,255,255,.96); border-radius: 18px; padding: 14px 16px 12px; box-shadow: 0 12px 40px rgba(0,0,0,.35); min-height: 96px; }
+#cs-who { display: inline-block; font-size: 12px; font-weight: 800; color: #fff; background: var(--who, #15302b); padding: 3px 10px; border-radius: 999px; margin-bottom: 6px; }
+#cs-who:empty { display: none; }
+#cs-text { font-size: 15px; font-weight: 600; line-height: 1.55; color: var(--ink); min-height: 46px; }
+#cs-box.narr { background: rgba(21,48,43,.9); }
+#cs-box.narr #cs-text { color: #fff; text-align: center; font-weight: 700; }
+.cs-next { display: block; text-align: right; font-size: 11px; font-weight: 700; color: var(--ink-3); margin-top: 4px; animation: blink 1.2s infinite; }
+#cs-box.narr .cs-next { color: rgba(255,255,255,.6); }
+@keyframes blink { 50% { opacity: .3; } }
+
+/* ===== 의료지식 퀴즈 ===== */
+#screen-quiz { z-index: 110; }
+.card.quiz { text-align: left; }
+.quiz-top { display: flex; align-items: center; gap: 8px; }
+.quiz-badge { width: 32px; height: 32px; border-radius: 10px; background: var(--violet-l); color: var(--violet); font-size: 18px; }
+.card.quiz h2 { font-size: 18px; line-height: 1.45; margin: 10px 0 8px; }
+#quiz-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+#quiz-opts button { text-align: left; padding: 12px 14px; border-radius: 14px; background: #f5f9f8; font-size: 14px; font-weight: 700; border: 2px solid transparent; }
+#quiz-opts button.ok { background: var(--mint-l); border-color: var(--mint); color: var(--mint-d); }
+#quiz-opts button.bad { background: var(--coral-l); border-color: var(--coral); color: var(--coral); }
+#quiz-opts button:disabled { opacity: 1; }
+.quiz-exp { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #15302b; color: #fff; font-size: 12.5px; line-height: 1.5; }
+.quiz-exp b { color: #7ff0dc; }
+.mate-row.locked .focus-seg { opacity: .45; pointer-events: none; }
+.lock-tag { font-size: 10.5px; font-weight: 800; color: #2d3e66; background: #e3e8f4; padding: 3px 8px; border-radius: 999px; margin-left: auto; white-space: nowrap; }

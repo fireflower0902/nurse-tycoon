@@ -4,7 +4,7 @@
  * ========================================================= */
 import * as THREE from 'three';
 import { icon, hydrateIcons, EMOJI_ICON } from './icons.js';
-import { box, cyl, sph, mesh, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -16,7 +16,7 @@ const fmtWon = (n) => (Math.abs(n) >= 10000 ? (n / 10000).toFixed(1).replace(/\.
 const won = (n) => '₩' + Math.round(n).toLocaleString('ko-KR');
 
 // ================= 게임 설정 =================
-const SAVE_KEY = 'nurse-tycoon-v3';
+const SAVE_KEY = 'nurse-tycoon-v4';
 const DAY_SECONDS = 180;
 const START_MIN = 9 * 60, END_MIN = 18 * 60;
 const MIN_PER_SEC = (END_MIN - START_MIN) / DAY_SECONDS;
@@ -62,11 +62,11 @@ const ORDER_TABLE = {
   normal:  [['shot', 3], ['iv', 2], ['heat', 2], ['none', 3]],
 };
 const DOCTORS = [
-  { id: 'kind', name: '한원장', trait: '천사 원장님', desc: '호출이 적고, 가끔 커피를 사 줘요.', good: true, examMul: 1.1, errandMul: 0.5, kind: true, look: { hair: '#5a4636', hairLen: 0.5, smile: true, glasses: false, tie: '#2bb5a0' } },
-  { id: 'slow', name: '김원장', trait: '꼼꼼파', desc: '진료를 길게 봐서 대기 환자가 쌓여요.', examMul: 1.6, errandMul: 0.7, look: { hair: '#a9a9a9', sides: true, mustache: true } },
-  { id: 'fast', name: '박원장', trait: '속전속결', desc: '진료가 빨라 처치가 몰리고, 처방도 자주 바꿔요.', examMul: 0.6, errandMul: 1, changeMul: 2.2, look: { hair: '#222222', hairLen: 0.5, square: true, tie: '#d64545' } },
-  { id: 'caller', name: '이원장', trait: '호출 대마왕', desc: '“김 선생~” 하루 종일 불러요.', examMul: 1, errandMul: 2.6, look: { hair: '#6b6b6b', hairLen: 0.42, glassColor: '#8b5a2b' } },
-  { id: 'creep', name: '정원장', trait: '선 넘는 농담', desc: '불쾌한 말을 던져요. 선을 그을지, 넘길지…', examMul: 1, errandMul: 1.2, harass: true, look: { hair: '#3a3a3a', hairLen: 0.45, glasses: false, tie: '#7a1f3d' } },
+  { id: 'biz', name: '최원장', trait: '사업가 원장', desc: '환자가 곧 매출. 워라밸은 관심 없고, 가끔 의료지식 질문으로 기습해요.', owner: true, examMul: 0.85, errandMul: 1.4, quiz: true, biz: true, look: { hair: '#2b2b2b', hairLen: 0.4, square: true, tie: '#c9a227', mustache: false } },
+  { id: 'kind', name: '대진 오선생', trait: '천사 대진의', desc: '원장님 학회 날. 호출이 적고 커피도 사 줘요.', good: true, examMul: 1.1, errandMul: 0.5, kind: true, look: { hair: '#5a4636', hairLen: 0.5, smile: true, glasses: false, tie: '#2bb5a0' } },
+  { id: 'slow', name: '대진 서선생', trait: '꼼꼼파', desc: '원장님 학회 날. 진료를 길게 봐서 대기 환자가 쌓여요.', examMul: 1.6, errandMul: 0.7, look: { hair: '#a9a9a9', sides: true, mustache: true } },
+  { id: 'fast', name: '대진 윤선생', trait: '속전속결', desc: '원장님 학회 날. 진료가 빨라 처치가 몰리고, 처방도 자주 바꿔요.', examMul: 0.6, errandMul: 1, changeMul: 2.2, look: { hair: '#222222', hairLen: 0.5, square: true, tie: '#d64545' } },
+  { id: 'creep', name: '대진 정선생', trait: '선 넘는 농담', desc: '원장님 학회 날. 불쾌한 말을 던져요. 선을 그을지, 넘길지…', examMul: 1, errandMul: 1.2, harass: true, look: { hair: '#3a3a3a', hairLen: 0.45, glasses: false, tie: '#7a1f3d' } },
 ];
 const RANKS = [
   { name: '신규 간호사', wage: 11500, need: 0 },
@@ -95,10 +95,13 @@ const INVEST = [
   { rev: 1400000, key: 'ivBeds', text: '수액 침대 1대 추가' },
   { rev: 2000000, key: 'heatBeds', text: '핫팩 침대 1대 추가' },
 ];
+const LEAD_DEF = { name: '한 팀장' };
+// 후배 동료: DAY 3 박 선생, DAY 5 이 선생 입사
 const MATE_DEFS = [
-  { name: '박 선생', look: { tired: false, hair: '#6b3f2a', top: '#9ec9f0', pants: '#86b9e8', style: 'pony' } },
-  { name: '이 선생', look: { tired: false, hair: '#1d1d1d', top: '#f4b6c2', pants: '#eaa0b0', style: 'short' } },
+  { name: '박 선생', from: 3, look: { tired: false, hair: '#6b3f2a', top: '#9ec9f0', pants: '#86b9e8', style: 'pony' } },
+  { name: '이 선생', from: 5, look: { tired: false, hair: '#1d1d1d', top: '#f4b6c2', pants: '#eaa0b0', style: 'short' } },
 ];
+const juniorsFor = (day) => MATE_DEFS.filter((m) => day >= m.from);
 const FOCUS = { auto: '알아서', desk: '접수·수납', treat: '처치', chart: '기록' };
 const RUDE_LINES = ['여기 왜 이렇게 느려요!', '내가 먼저 왔는데?!', '아가씨! 아가씨!', '원장 나오라 그래!', '주사 하나 놓는 데 뭐 이리 오래 걸려?', '돈 내고 왔는데 이게 뭐야!'];
 const ERRANDS = [
@@ -119,9 +122,9 @@ const HARASS_LINES = ['“김 선생은 오늘따라 예쁘네~ 남자친구 있
 const PHONE_LINES = ['“오늘 몇 시까지 해요?”', '“독감 주사 예약 되나요?”', '약국: “처방 용량 확인 부탁드려요”', '“어제 받은 약 먹고 속이 쓰려요…”', '“주차 되나요?”', '“점심시간에도 진료해요?”'];
 const TIPS = [
   '환자 머리 위 색깔이 처방이에요. 같은 색 약을 챙기세요.',
-  '바쁠 땐 동료에게 "처치 위주"를 요청해 보세요.',
-  '실장님이 순찰 중일 땐 쉬는 걸 조심하세요.',
-  '점심시간(13~14시)에는 실장님 눈치 없이 밥 먹을 수 있어요.',
+  '팀장님 지시 말풍선을 탭하면 바로 처리하러 가요.',
+  '팀장님 근처에서 쉬면 한소리 들어요. 동선을 잘 짜세요.',
+  '최원장님 날엔 점심이 30분뿐이에요. 미리 초코바를 챙기세요.',
   '기록이 밀리면 퇴근 후 무급 야근이 돼요.',
 ];
 
@@ -297,7 +300,6 @@ const SP = {
   lunchSeats: [R('pantry', -1.7, -1.5, { rot: Math.PI, pose: 'sit' }), R('pantry', 0.1, -1.5, { rot: Math.PI, pose: 'sit' })],
   exit: { x: 0, z: 12.6 },
 };
-const LEAD_WATCH = [R('desk', 1.2, -0.6, { rot: Math.PI }), R('inject', 1.2, -0.1, { rot: 0 }), R('ward', 1.2, 0, { rot: Math.PI / 2 }), R('exam', 0.6, -0.9, { rot: Math.PI / 2 }), R('pantry', 0, 0.5, { rot: Math.PI }), R('cabinet', 1.2, 0.8, { rot: Math.PI })];
 
 // 진료실
 {
@@ -466,9 +468,9 @@ const phoneBtn = stationBtn(`<span class="pin">${icon('phone')}</span><small>전
 const errandOv = ov('<span class="e-ic"></span><span class="e-tx"></span><i></i>', 'errand');
 errandOv.style.display = 'none';
 errandOv.addEventListener('click', (e) => { e.stopPropagation(); if (playing() && S.errand) enqueue(player, { kind: 'errand' }); });
-const choreOv = ov(`<span class="e-ic">${icon('megaphone')}</span><span class="e-tx">실장님 지시: 재고 정리</span><i></i>`, 'errand');
+const choreOv = ov(`<span class="e-ic">${icon('megaphone')}</span><span class="e-tx">팀장님 지시</span><i></i>`, 'errand directive');
 choreOv.style.display = 'none';
-choreOv.addEventListener('click', (e) => { e.stopPropagation(); if (playing() && S.chore) enqueue(player, { kind: 'chore' }); });
+choreOv.addEventListener('click', (e) => { e.stopPropagation(); if (playing() && S.directive) enqueue(player, { kind: S.directive.kind, pid: S.directive.pid }); });
 function layoutStaticOverlays() { for (const o of staticOv) placeOv(o.node, o.x, o.y, o.z); }
 
 // 말풍선
@@ -715,7 +717,7 @@ function goTo(m, spot) { m.path = route(m.pos, m.spot, spot); m.spot = spot; }
 function makeActor(kind, name, ch, idx) {
   const a = {
     kind, name, ch, idx, pos: { x: DESK_SLOTS[0].spot.x, z: DESK_SLOTS[0].spot.z }, spot: null, path: [], face: 0, hands: [], queue: [], cur: null,
-    focus: 'auto', state: 'work', ovNode: ov(`<span class="nametag ${kind === 'player' ? 'me' : ''}">${name}</span><div class="pbar"><i></i></div>`, 'actor-ov'),
+    focus: 'auto', state: 'work', ovNode: ov(`<span class="nametag ${kind === 'player' ? 'me' : kind === 'lead' ? 'lead' : ''}">${name}</span><div class="pbar"><i></i></div>`, 'actor-ov'),
   };
   a.barEl = a.ovNode.querySelector('.pbar'); a.barFill = a.barEl.firstChild;
   a.bubblePos = () => a.pos;
@@ -741,31 +743,25 @@ function placeDoctor(look) {
 }
 function buildDayCast() {
   for (const m of mates) { world.remove(m.ch.g); m.ovNode.remove(); }
-  const n = save.day <= 3 ? 2 : 1;
-  mates = MATE_DEFS.slice(0, n).map((d, i) => {
-    const m = makeActor('mate', d.name, makeNurse(d.look), i);
-    m.focus = save.focus[i] || 'auto';
+  lead = makeActor('lead', LEAD_DEF.name, makeLead(), 0);
+  lead.isLead = true; lead.focus = 'auto';
+  const juniors = juniorsFor(save.day).map((d, i) => {
+    const m = makeActor('mate', d.name, makeNurse(d.look), i + 1);
+    m.jIdx = i; m.focus = save.focus[i] || 'auto';
     return m;
   });
+  mates = [lead, ...juniors];
   placeDoctor(S.doc.look);
-  if (!lead) {
-    const ch = makeLead();
-    lead = { ch, pos: { ...SP.exit }, spot: null, path: [], face: Math.PI, state: 'away', nameOv: ov('<span class="nametag lead">최 실장</span>', 'actor-ov') };
-    lead.bubblePos = () => lead.pos;
-    setPose(ch, 'stand');
-    world.add(ch.g);
-  }
-  lead.state = 'away'; lead.path = []; lead.ch.g.visible = false; lead.nameOv.style.display = 'none';
   el.mateCount.textContent = mates.length;
 }
 const allActors = () => [player, ...mates];
 
 // ================= 하루 시작 =================
 function pickDoctor() {
-  if (save.day === 1) return DOCTORS[0];
-  if (save.day === 2) return DOCTORS[3];
-  if (save.day === 3) return DOCTORS[2];
-  return pick(DOCTORS.filter((d) => d.id !== save.lastDoc));
+  const owner = DOCTORS[0];
+  if (save.day <= 3) return owner;
+  if (Math.random() < 0.6) return owner;
+  return pick(DOCTORS.slice(1).filter((d) => d.id !== save.lastDoc));
 }
 function clearDay() {
   if (!S) return;
@@ -789,16 +785,18 @@ function newDay(doc) {
     body: { hunger: mx, bladder: mx, stamina: clamp(save.stamina, 0, mx), mental: clamp(save.mental, 0, mx) },
     warned: {}, beds: [], phone: { ringing: false, left: 0, next: rand(20, 32), by: null },
     spawnAt: 0.8, combo: 0, lastDone: -99, returns: [], charts: 0,
-    errand: null, errandAt: rand(50, 75) / doc.errandMul, chore: null,
+    errand: null, errandAt: rand(50, 75) / doc.errandMul, directive: null, directiveAt: rand(22, 35), bossCd: {},
+    quizAt: doc.quiz ? rand(45, 75) : -1, quizCount: 0,
+    lunchEnd: doc.biz ? LUNCH_S + 30 : LUNCH_E, intakeEnd: END_MIN - 30, extendDone: false,
     changeAt: day >= 2 ? rand(45, 120) / (doc.changeMul || 1) : -1,
     emergencyAt: day >= 2 ? rand(35, 150) : -1,
     harassAt: doc.harass ? rand(30, 55) : -1, harassCount: 0,
     coffeeAt: doc.kind ? rand(60, 140) : -1,
     bloodLeft: 1 + (Math.random() < 0.5 ? 1 : 0),
-    lateDone: false, lunchToast: false, lunchEndToast: false, leadAt: rand(30, 50), scolded: {},
+    lateDone: false, lunchToast: false, lunchEndToast: false,
     stats: { served: 0, angry: 0, incidents: 0, revenue: 0, phone: 0, phoneMissed: 0, e119: 0, skippedMeal: false, heldPee: false,
              startRating: save.rating, maxCombo: 0, restSec: 0, errands: 0, errandsMissed: 0, rude: 0, charted: 0,
-             taeum: 0, harass: 0, ateLunch: false, blood: 0, bloodFail: 0, chores: 0, evalAdj: 0 },
+             taeum: 0, harass: 0, ateLunch: false, blood: 0, bloodFail: 0, chores: 0, evalAdj: 0, ord: 0, ordMiss: 0, quizOk: 0, quizBad: 0 },
   };
   for (const b of preview.beds) b.ov.remove();
   preview.beds = [];
@@ -912,7 +910,7 @@ function leaveAngry(p) {
   floatText(p.pos, '평판 −', true);
   S.stats.angry++;
   S.body.mental -= 6;
-  if (lead && lead.state === 'in') leadScold('angry', 6);
+  if (leadNear(9)) leadScold('angry', 6);
   removePatient(p);
 }
 
@@ -1011,7 +1009,7 @@ el.traySlots.addEventListener('click', (e) => {
 
 // ================= 행동 정의 =================
 const P = (t) => S.patients.get(t.pid);
-const isLunch = () => { if (!S) return false; const gm = gameMinute(); return gm >= LUNCH_S && gm < LUNCH_E; };
+const isLunch = () => { if (!S) return false; const gm = gameMinute(); return gm >= LUNCH_S && gm < S.lunchEnd; };
 function deskSlotFor(actor) {
   let s = DESK_SLOTS.find((d) => d.owner === actor);
   if (!s) s = DESK_SLOTS.find((d) => !d.owner);
@@ -1045,7 +1043,7 @@ function incident(p, actor, why) {
   if (actor === player) {
     S.body.mental -= 15;
     toast(`⚠️ 투약 사고! ${p.name}님께 ${why} (멘탈 −15 · 경위서)`, 'warn');
-    if (lead.state === 'in') leadScold('incident', 4);
+    leadScold('incident', 4);
   } else toast(`⚠️ ${actor.name}님 투약 사고… 팀 전체가 경위서`, 'warn');
   S.reportDue = true;
   floatText(p.pos, '투약 사고!', true);
@@ -1198,13 +1196,8 @@ const ACT = {
   },
   chore: {
     where: () => SP.prep, dur: () => 2.6,
-    check: () => (S.chore ? null : 'skip'),
-    start: () => { if (S.chore) S.chore.answering = true; },
-    apply: () => {
-      S.chore = null; choreOv.style.display = 'none';
-      S.stats.chores++; S.stats.evalAdj += 10;
-      toast('📣 재고 정리 완료. 실장님은 고맙다는 말이 없다');
-    },
+    check: () => (S.directive && S.directive.kind === 'chore' ? null : 'skip'),
+    apply: () => { S.stats.chores++; toast('📣 재고 정리 완료. 팀장님은 고맙다는 말이 없다'); },
   },
   toilet: {
     where: () => SP.toilet, dur: () => 2.0, check: () => null, rest: true,
@@ -1287,6 +1280,7 @@ function updateActor(a, dt) {
       const err = def.check(c.a, a);
       if (!err) {
         def.apply(c.a, a, c);
+        if (a === player) checkDirective(c.a);
         if (a === player) {
           S.body.stamina -= 1.5 * (save.items.tumbler ? 0.8 : 1);
           if (def.rest) S.stats.restSec += c.dur;
@@ -1317,7 +1311,7 @@ function mateThink(m) {
   };
   const cands = [];
   for (const p of S.patients.values()) {
-    if (p.busy) continue;
+    if (p.busy || (S.directive && S.directive.pid === p.id)) continue;
     const urg = (1 - p.patience / p.max) * 30;
     if (p.type === 'emergency' && p.state === 'wait') { if (!claimedBy('call119', p.id)) cands.push({ s: 200, t: { kind: 'call119', pid: p.id } }); }
     else if (p.state === 'wait' && !claimedBy('register', p.id)) cands.push({ s: (40 + urg) * w('register'), t: { kind: 'register', pid: p.id } });
@@ -1341,43 +1335,70 @@ function mateThink(m) {
   m.queue.push(best.t);
 }
 
-// ================= 간호실장 =================
+// ================= 한 팀장 (같이 일하는 간호팀장) =================
+const leadNear = (d = 6) => !!(lead && lead.state === 'work' && lead.ch.g.visible && dist(lead.pos, player.pos) < d);
 function leadScold(kind, amt) {
-  if (S.scolded[kind]) return;
-  S.scolded[kind] = true;
+  if ((S.bossCd[kind] || -99) > S.t - 40) return;
+  S.bossCd[kind] = S.t;
   const a = amt * (save.rank >= 3 ? 0.5 : 1);
   S.body.mental -= a; S.stats.taeum++; S.stats.evalAdj -= 5;
   say(lead, LEAD_SCOLD[kind].replace(/[“”]/g, ''), 'lead', 3);
-  toast(`📣 최 실장: ${LEAD_SCOLD[kind]} (멘탈 −${Math.round(a)})`, 'warn');
-  hint('lead', '📣 간호실장이 순찰 중이에요. 쉬는 걸 들키거나 기록이 밀리면 태움을 당해요. (인권침해 가해자 1위: 선임 간호사)');
+  toast(`📣 한 팀장: ${LEAD_SCOLD[kind]} (멘탈 −${Math.round(a)})`, 'warn');
+  hint('lead', '📣 한 팀장은 같이 일하는 상사예요. 근처에서 쉬거나 기록이 밀리면 태움을 당해요. (인권침해 가해자 1위: 선임 간호사)');
 }
-function updateLead(dt) {
-  const L = lead;
-  if (L.state === 'away') {
-    if (S.closed || isLunch() || S.t < S.leadAt) return;
-    L.state = 'in'; L.pos = { ...SP.exit }; L.spot = null; L.path = []; L.ch.g.visible = true; L.nameOv.style.display = '';
-    const myRoom = roomAt(player.pos.x, player.pos.z);
-    L.route = [pick(LEAD_WATCH), LEAD_WATCH.find((s) => roomAt(s.x, s.z) === myRoom) || pick(LEAD_WATCH)];
-    L.stay = 0; S.scolded = {}; L.sweetDone = false;
-    goTo(L, L.route.shift());
-    if (!S.chore && Math.random() < 0.45) {
-      S.chore = { left: 26, max: 26, answering: false };
-      choreOv.style.display = '';
-      toast('📣 최 실장: “약품장 재고 정리 좀 해놔요.”');
-      setTimeout(() => { if (lead.state === 'in') say(lead, '김 선생, 약품장 재고 정리 좀 해놔요.', 'lead'); }, 900);
-    }
+function issueDirective() {
+  const cands = [];
+  for (const p of S.patients.values()) {
+    if (p.state === 'wait' && p.type !== 'emergency' && !p.busy && !claimedBy('register', p.id)) cands.push({ kind: 'register', pid: p.id, label: `${p.ticket}번 접수 먼저 해요` });
+    if (p.state === 'beddone' && !claimedBy('unbed', p.id)) cands.push({ kind: 'unbed', pid: p.id, label: `${p.name}님 침대 정리 좀 해요` });
+  }
+  if (S.charts >= 3 && !claimedBy('chart')) cands.push({ kind: 'chart', label: '기록부터 정리해요' });
+  cands.push({ kind: 'chore', label: '약품장 재고 정리 좀 해놔요' });
+  const d = pick(cands);
+  S.directive = { ...d, left: 18, max: 18 };
+  choreOv.querySelector('.e-tx').textContent = `팀장님 지시: ${d.label}`;
+  choreOv.style.display = '';
+  say(lead, `김 선생, ${d.label}`, 'lead', 3);
+  hint('directive', '📣 팀장님 지시! 말풍선을 탭하면 바로 할 일에 들어가요. 제때 안 하면 멘탈과 평가가 깎여요.');
+}
+function checkDirective(t) {
+  const d = S.directive;
+  if (!d || d.kind !== t.kind || (d.pid && d.pid !== t.pid)) return;
+  S.directive = null; choreOv.style.display = 'none';
+  S.stats.ord++; S.stats.evalAdj += 8;
+  S.directiveAt = S.t + rand(35, 55);
+  say(lead, '음, 됐어요.', 'lead', 1.8);
+}
+function updateBoss(dt) {
+  if (!lead) return;
+  if (!isLunch() && !S.closed) {
+    if (player.cur && ACT[player.cur.a.kind].rest && player.cur.phase === 'work' && leadNear(7)) leadScold('rest', 8);
+    if (S.charts >= 6) leadScold('chart', 6);
+  }
+  const d = S.directive;
+  if (!d) {
+    if (!S.closed && !isLunch() && S.t >= S.directiveAt && !S.modal) issueDirective();
     return;
   }
-  if (L.path.length) { stepAlong(L, dt, 3.6); return; }
-  if (L.spot === SP.exit) { L.state = 'away'; L.ch.g.visible = false; L.nameOv.style.display = 'none'; S.leadAt = S.t + rand(45, 75); return; }
-  L.stay += dt;
-  const room = roomAt(L.pos.x, L.pos.z);
-  if (room && room.key === 'exam' && !L.sweetDone) { L.sweetDone = true; say(L, pick(LEAD_SWEET), 'sweet', 3); }
-  if (!isLunch()) {
-    if (player.cur && ACT[player.cur.a.kind].rest && player.cur.phase === 'work') leadScold('rest', 8);
-    if (S.charts >= 5) leadScold('chart', 6);
+  // 다른 사람이 먼저 처리했거나 대상이 사라지면 조용히 취소
+  if (d.pid) {
+    const p = S.patients.get(d.pid);
+    const ok = p && ((d.kind === 'register' && p.state === 'wait') || (d.kind === 'unbed' && p.state === 'beddone'));
+    const mine = player.cur && player.cur.a.kind === d.kind && player.cur.a.pid === d.pid;
+    if (!ok && !mine) { S.directive = null; choreOv.style.display = 'none'; S.directiveAt = S.t + rand(30, 45); return; }
   }
-  if (L.stay > 5.5) { L.stay = 0; goTo(L, L.route.length ? L.route.shift() : SP.exit); }
+  const inMine = (player.cur && player.cur.a.kind === d.kind && player.cur.a.pid === d.pid) || player.queue.some((t) => t.kind === d.kind && t.pid === d.pid);
+  if (inMine) return;
+  d.left -= dt;
+  choreOv.querySelector('i').style.transform = `scaleX(${Math.max(0, d.left / d.max)})`;
+  if (d.left <= 0) {
+    S.directive = null; choreOv.style.display = 'none';
+    const a = 8 * (save.rank >= 3 ? 0.5 : 1);
+    S.body.mental -= a; S.stats.ordMiss++; S.stats.evalAdj -= 10; S.stats.taeum++;
+    S.directiveAt = S.t + rand(35, 55);
+    say(lead, '시킨 거 하나 제대로 못 해요?', 'lead', 2.6);
+    toast(`📣 한 팀장: “시킨 거 하나 제대로 못 해요?” (멘탈 −${a})`, 'warn');
+  }
 }
 
 // ================= 원장님 =================
@@ -1432,6 +1453,7 @@ function updateErrand(dt) {
       errandOv.querySelector('.e-tx').textContent = `“${e.label}”`;
       errandOv.style.display = '';
       say(doctor, `김 선생~ ${e.label}`, 'doc');
+      setTimeout(() => { if (S && lead && !S.ended) say(lead, pick(LEAD_SWEET), 'sweet', 2.6); }, 1300);
       hint('errand', '🧑‍⚕️ 원장님 호출! 말풍선이나 원장님을 탭하면 처리하러 가요. 무시하면 멘탈이 크게 깎여요. (간호사 66.2%가 의사 업무를 요구받은 경험)');
     }
     return;
@@ -1447,19 +1469,28 @@ function updateErrand(dt) {
     toast('🧑‍⚕️ 원장님: “김 선생, 아까 말한 거 안 했어?” (멘탈 −15)', 'warn');
   }
 }
-function updateChore(dt) {
-  if (!S.chore || S.chore.answering) return;
-  S.chore.left -= dt;
-  choreOv.querySelector('i').style.transform = `scaleX(${Math.max(0, S.chore.left / S.chore.max)})`;
-  if (S.chore.left <= 0) {
-    S.chore = null; choreOv.style.display = 'none';
-    S.body.mental -= 10; S.stats.evalAdj -= 15;
-    player.queue = player.queue.filter((t) => t.kind !== 'chore'); renderQueue();
-    toast('📣 최 실장: “시킨 거 하나 제대로 못 해요?” (멘탈 −10)', 'warn');
-  }
-}
 function updateDoctorEvents() {
   if (S.closed) return;
+  // 최원장의 기습 질문
+  if (S.quizAt > 0 && S.t >= S.quizAt && !S.modal && !isLunch() && !(player.cur && /pick|mini/.test(player.cur.phase))) {
+    S.quizCount++;
+    S.quizAt = S.quizCount < 2 ? S.t + rand(55, 85) : -1;
+    say(doctor, '김 선생, 잠깐! 이거 알아?', 'doc', 2.4);
+    openQuiz(`${S.doc.name}의 기습 질문`, (ok) => {
+      if (ok) { S.body.mental = Math.min(maxStat(), S.body.mental + 3); S.stats.evalAdj += 8; S.stats.quizOk++; toast(`🧑‍⚕️ ${S.doc.name}: “오, 제법인데?”`, 'good'); }
+      else { S.body.mental -= 10; S.stats.evalAdj -= 4; S.stats.quizBad++; toast(`🧑‍⚕️ ${S.doc.name}: “그것도 몰라? 간호사 맞아?” (멘탈 −10)`, 'warn'); }
+    });
+    return;
+  }
+  // 사업가 원장: 접수 마감 연장
+  if (S.doc.biz && !S.extendDone && gameMinute() >= END_MIN - 40) {
+    S.extendDone = true;
+    if (Math.random() < 0.6) {
+      S.intakeEnd = END_MIN - 15;
+      say(doctor, '환자 오면 다 받아! 마감 15분 연장!', 'doc', 3);
+      toast(`🧑‍⚕️ ${S.doc.name}: “오늘 접수 마감 15분 연장이야~” (워라밸은…?)`, 'warn');
+    }
+  }
   if (S.harassAt > 0 && S.t >= S.harassAt && S.harassCount < 2 && !player.cur?.phase?.match(/pick|mini/)) {
     S.harassCount++;
     S.harassAt = S.t + rand(50, 80);
@@ -1471,7 +1502,7 @@ function updateDoctorEvents() {
       options: [
         { label: '단호하게 선 긋기', sub: '“그런 말씀은 불편합니다.” · 멘탈 −3, 대신 원장님 호출이 늘어나요', fn: () => { S.body.mental -= 3; S.grudge = true; S.errandAt = Math.min(S.errandAt, S.t + 10); toast('🙅 선을 그었다. 원장님 표정이 굳었다…'); } },
         { label: '애써 웃어넘기기', sub: '분위기는 지켰지만… 멘탈 −12', fn: () => { S.body.mental -= 12; toast('😣 웃어넘겼다. 마음이 무겁다', 'warn'); } },
-        { label: '실장님께 말하기', sub: '공식적으로 알린다 · 결과는 장담 못 해요', fn: () => { S.body.mental -= 8; toast('📣 최 실장: “원장님이 농담하신 거잖아~ 예민하게 굴지 마요.” (멘탈 −8)', 'warn'); } },
+        { label: '팀장님께 말하기', sub: '공식적으로 알린다 · 결과는 장담 못 해요', fn: () => { S.body.mental -= 8; toast('📣 한 팀장: “선생님이 농담하신 거잖아~ 예민하게 굴지 마요.” (멘탈 −8)', 'warn'); } },
       ],
     });
   }
@@ -1524,9 +1555,12 @@ function openPick(c, p, type) {
 function openMates() {
   sheetKind = 'mates';
   el.sheet.innerHTML = `<h4>${icon('users')}동료에게 요청하기 <button class="close" data-close>${icon('x')}</button></h4>
-    <p class="sub2">어떤 일 위주로 맡길까요? 채혈·원장님 호출은 내 몫이에요.</p>
-    ${mates.map((m, i) => `<div class="mate-row"><span class="mate-av">${icon('users')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : '대기 중'}</small></span>
-      <div class="focus-seg" data-mate="${i}">${Object.entries(FOCUS).map(([k, v]) => `<button data-focus="${k}" class="${m.focus === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('') || '<p class="sub2">함께 일하는 동료가 없어요…</p>'}`;
+    <p class="sub2">후배에게 어떤 일 위주로 맡길까요? 팀장님은 상사라 지정할 수 없어요.</p>
+    ${mates.map((m, i) => m.isLead
+      ? `<div class="mate-row locked"><span class="mate-av">${icon('megaphone')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : '대기 중'}</small></span><span class="lock-tag">상사 · 지정 불가</span></div>`
+      : `<div class="mate-row"><span class="mate-av">${icon('users')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : '대기 중'}</small></span>
+      <div class="focus-seg" data-mate="${i}">${Object.entries(FOCUS).map(([k, v]) => `<button data-focus="${k}" class="${m.focus === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('')}
+    ${mates.length < 2 ? '<p class="sub2">아직 후배가 없어요. DAY 3에 박 선생이 입사해요.</p>' : ''}`;
   el.sheet.classList.remove('hidden');
 }
 el.sheet.addEventListener('click', (e) => {
@@ -1544,7 +1578,7 @@ el.sheet.addEventListener('click', (e) => {
   const fb = e.target.closest('[data-focus]');
   if (fb) {
     const i = +fb.closest('[data-mate]').dataset.mate;
-    mates[i].focus = fb.dataset.focus; save.focus[i] = fb.dataset.focus; persist();
+    mates[i].focus = fb.dataset.focus; save.focus[mates[i].jIdx] = fb.dataset.focus; persist();
     say(mates[i], fb.dataset.focus === 'auto' ? '네~ 알아서 할게요!' : `${FOCUS[fb.dataset.focus]} 위주로 할게요!`, '', 2);
     openMates();
   }
@@ -1557,7 +1591,7 @@ el.choco.addEventListener('click', () => {
   S.body.hunger = Math.min(maxStat(), S.body.hunger + 40);
   S.body.stamina = Math.min(maxStat(), S.body.stamina + 5);
   toast('🍫 초코바 한 입에 털어 넣기 (식사 +40)', 'good');
-  if (lead.state === 'in' && !isLunch()) leadScold('choco', 5);
+  if (leadNear(6) && !isLunch()) leadScold('choco', 5);
   updateChocoBtn();
 });
 function updateChocoBtn() { el.chocoCount.textContent = save.choco; }
@@ -1714,7 +1748,7 @@ function updateBody(dt) {
   warn('b', b.bladder, '🚻 화장실이 급해요…! 3시간째 참는 중');
   warn('s', b.stamina, '⚡ 체력이 바닥나고 있어요');
   warn('m', b.mental, '💔 멘탈이 바닥나서 손이 느려져요…');
-  if (b.hunger < 40 || b.bladder < 40) hint('body', '🍙🚻 내 몸도 챙겨야 해요! 탕비실이나 초코바로 회복하세요. 단, 실장님 눈치는 보면서…');
+  if (b.hunger < 40 || b.bladder < 40) hint('body', '🍙🚻 내 몸도 챙겨야 해요! 탕비실이나 초코바로 회복하세요. 단, 팀장님 눈치는 보면서…');
   setGauge(el.gH, b.hunger, mx); setGauge(el.gB, b.bladder, mx); setGauge(el.gS, b.stamina, mx); setGauge(el.gM, b.mental, mx);
 }
 function setGauge(g, v, mx) {
@@ -1744,8 +1778,8 @@ function updatePhone(dt) {
 function updateSpawns() {
   if (S.closed || S.intakeClosed) return;
   const gm = gameMinute();
-  if (gm >= END_MIN - 30) { S.intakeClosed = true; toast('🚪 17:30 접수 마감! 이제 새 환자는 안 받아요'); return; }
-  if (gm >= LUNCH_S - 10 && gm < LUNCH_E) {
+  if (gm >= S.intakeEnd) { S.intakeClosed = true; toast(`🚪 ${fmtTime(S.intakeEnd)} 접수 마감! 이제 새 환자는 안 받아요`); return; }
+  if (gm >= LUNCH_S - 10 && gm < S.lunchEnd) {
     if (!S.lateDone && gm >= LUNCH_S - 5) {
       S.lateDone = true;
       if (Math.random() < 0.65) {
@@ -1801,7 +1835,8 @@ function updateLunch() {
     S.lunchToast = true;
     const left = S.patients.size;
     toast(left ? `🍱 13시 점심시간! …인데 아직 환자 ${left}명이 남았다` : '🍱 13시 점심시간! 탕비실에서 밥 먹을 수 있어요', left ? 'warn' : 'good');
-    hint('lunch', '🍱 점심시간(13~14시)에는 새 환자가 없고, 탕비실에서 실장님 눈치 없이 밥을 먹을 수 있어요.');
+    if (S.doc.biz) setTimeout(() => { say(doctor, '점심은 30분만 먹고 와요~', 'doc', 3); toast(`🧑‍⚕️ ${S.doc.name}: “점심은 30분이면 충분하지? 1시 반부터 진료해.”`, 'warn'); }, 900);
+    hint('lunch', '🍱 점심시간에는 새 환자가 없고, 탕비실에서 팀장님 눈치 없이 밥을 먹을 수 있어요.');
   }
   if (isLunch()) {
     mates.forEach((m, i) => {
@@ -1810,10 +1845,10 @@ function updateLunch() {
         say(m, '밥 먹고 올게요~', '', 1.8);
       }
     });
-  } else if (gm >= LUNCH_E) {
+  } else if (gm >= S.lunchEnd) {
     if (!S.lunchEndToast) {
       S.lunchEndToast = true;
-      toast('🕑 14시 오후 진료 시작');
+      toast(`🕑 ${fmtTime(S.lunchEnd)} 오후 진료 시작`);
       if (!S.stats.ateLunch) setTimeout(() => toast('🍱 결국 점심을 못 먹었어요…', 'warn'), 600);
     }
     for (const m of mates) if (m.state === 'lunch') m.state = 'work';
@@ -1912,14 +1947,6 @@ function animateWorld(dt, t) {
     }
     for (let i = S.leavers.length - 1; i >= 0; i--) if (!S.leavers[i].path.length) { disposePatient(S.leavers[i]); S.leavers.splice(i, 1); }
     for (const bd of S.beds) placeOv(bd.ov, bd.g.position.x, 2.05, bd.g.position.z);
-    if (lead && lead.state === 'in') {
-      lead.ch.g.position.set(lead.pos.x, 0, lead.pos.z);
-      const mv = lead.path.length > 0;
-      turnTo(lead.ch.g, mv ? lead.face : (lead.spot && lead.spot.rot) || 0, dt);
-      animateChibi(lead.ch, dt, mv, t);
-      lead.ch.head.rotation.y = mv ? 0 : Math.sin(t * 1.5) * 0.6;
-      placeOv(lead.nameOv, lead.pos.x, 2.05, lead.pos.z);
-    }
     const D = S.D;
     const dp = D.cur && S.patients.get(D.cur);
     const examining = !!(dp && !dp.path.length && dp.spot === SP.examChair);
@@ -1928,7 +1955,7 @@ function animateWorld(dt, t) {
     doctor.head.rotation.y = examining ? Math.sin(t * 2) * 0.15 : Math.sin(t * 0.7) * 0.35;
     phoneMesh.position.y = 1.12 + (S.phone.ringing ? Math.abs(Math.sin(t * 30)) * 0.04 : 0);
     if (errandOv.style.display !== 'none') placeOv(errandOv, doctor.g.position.x, 2.4, doctor.g.position.z);
-    if (choreOv.style.display !== 'none') placeOv(choreOv, SP.prep.x, 2.3, SP.prep.z - 1.0);
+    if (choreOv.style.display !== 'none' && lead) placeOv(choreOv, lead.pos.x, 3.35, lead.pos.z);
     updateBubbles();
   }
   if (doctor) animateChibi(doctor, dt, false, t);
@@ -1940,7 +1967,7 @@ function frameLogic(dt) {
   if (!S || S.paused || S.ended || S.modal) return;
   S.t += dt;
   updateSpawns(); updateLunch(); updateDoctor(dt); updatePatients(dt); updateBeds(dt); updateBody(dt);
-  updatePhone(dt); updateErrand(dt); updateChore(dt); updateDoctorEvents(); updateLead(dt);
+  updatePhone(dt); updateErrand(dt); updateDoctorEvents(); updateBoss(dt);
   for (const m of mates) mateThink(m);
   for (const a of allActors()) updateActor(a, dt);
   updateClock(); updateHud();
@@ -1955,7 +1982,8 @@ function frame(ts) {
   }
   animateBlood(dt);
   if (S && S.modal) updateBubbles();
-  renderer.render(scene, camera);
+  if (CS.active) csFrame(dt, ts / 1000);
+  else renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
@@ -2002,6 +2030,8 @@ function endDay() {
     stat('투약 사고', st.incidents + '건', st.incidents > 0),
     stat('채혈', `${st.blood}건 · 실패 ${st.bloodFail}`, st.bloodFail > 2),
     stat('원장님 심부름', `${st.errands}건 · 놓침 ${st.errandsMissed}`, st.errandsMissed > 0),
+    stat('팀장님 지시', `${st.ord}건 · 놓침 ${st.ordMiss}`, st.ordMiss > 0),
+    stat('의료지식 퀴즈', `정답 ${st.quizOk} · 오답 ${st.quizBad}`, st.quizBad > 0),
     stat('들은 폭언 · 태움', `${st.rude} · ${st.taeum}번`, st.rude + st.taeum > 0),
   ].join('') + `<div class="labor" style="grid-column: 1 / -1">
       <h4>${icon('won')}오늘의 급여 명세</h4>
@@ -2023,7 +2053,7 @@ function endDay() {
   $('#res-badges').innerHTML = badges.map(([tx, g]) => `<span class="badge ${g ? 'good' : ''}">${tx}</span>`).join('');
   const next = RANKS[save.rank + 1];
   let extra = '';
-  if (promoted) extra += `<div class="promo up"><h4>${icon('medal')}승진! ${promoted.name}</h4><small>시급이 ${won(promoted.wage)}(으)로 올랐어요${save.rank >= 3 ? ' · 실장님 태움 데미지 절반' : ''}</small></div>`;
+  if (promoted) extra += `<div class="promo up"><h4>${icon('medal')}승진! ${promoted.name}</h4><small>시급이 ${won(promoted.wage)}(으)로 올랐어요${save.rank >= 3 ? ' · 팀장님 태움 데미지 절반' : ''}</small></div>`;
   else if (next) extra += `<div class="promo"><h4>${icon('medal')}승진 심사 · 다음: ${next.name}</h4><div class="pbar2"><i style="width:${clamp(save.evalPts / next.need * 100, 0, 100)}%"></i></div><small>평가 점수 ${save.evalPts} / ${next.need} (오늘 ${pts >= 0 ? '+' : ''}${pts})</small></div>`;
   for (const iv of invests) extra += `<div class="invest">${icon('sparkle')}<span>의원 매출이 늘어 원장님이 투자했어요: <b>${iv}</b></span></div>`;
   $('#res-extra').innerHTML = extra;
@@ -2037,8 +2067,9 @@ function openEvening() {
   $('#eve-eyebrow').textContent = `퇴근 후 · ${HOMES[save.home].name}`;
   const lines = [];
   if (st.rude >= 2) lines.push(`오늘 들은 폭언 <b>${st.rude}번</b>. 웃으며 “네~ 죄송합니다” 했지만, 집에 와서도 그 목소리가 맴돈다.`);
-  if (st.taeum) lines.push(`실장님한테 <b>${st.taeum}번</b> 혼났다. “신규가 간이 크네”라는 말이 계속 떠오른다.`);
-  if (st.harass) lines.push('원장님의 그 말… 웃어야 했나, 화내야 했나. 아무도 내 편이 아니었다.');
+  if (st.taeum) lines.push(`팀장님한테 <b>${st.taeum}번</b> 혼났다. “신규가 간이 크네”라는 말이 계속 떠오른다.`);
+  if (st.quizBad) lines.push('“그것도 몰라? 간호사 맞아?” 원장님 말에 얼굴이 화끈거렸다. 오늘 밤은 책 좀 봐야겠다.');
+  if (st.harass) lines.push('대진 선생님의 그 말… 웃어야 했나, 화내야 했나. 아무도 내 편이 아니었다.');
   if (r.overtime + r.chartOT > 30) lines.push(`오늘도 ${r.overtime + r.chartOT}분 공짜 야근. 버스 막차를 겨우 탔다.`);
   if (!lines.length) lines.push('오늘은 그럭저럭 버텼다. 내일도 이 정도면 좋겠다.');
   $('#eve-mood').innerHTML = `<div class="mood">${lines.join('<br>')}</div>`;
@@ -2105,16 +2136,17 @@ function sleepAndNext() {
   save.day++;
   persist();
   $('#screen-evening').classList.add('hidden');
-  openBrief();
+  briefDoc = { ...pickDoctor(), _day: save.day };
+  playStory(briefDoc, openBrief);
 }
 
 let briefDoc = null;
 const preview = { beds: [], on: false };
 const DOC_PLAN = {
+  biz: '최원장님은 회전율이 최우선이에요. 점심은 30분, 마감 연장도 각오하세요. 기습 질문에 대비해 기본기를 떠올려 두고, 초코바로 배를 채워 두세요.',
   kind: '여유로운 날이에요. 기록을 그때그때 정리하고, 점심도 꼭 챙겨 드세요.',
-  slow: '진료가 길어 접수·수납실이 붐벼요. 동료 한 명은 <b>접수·수납 위주</b>로, 대기 환자 인내심을 지켜 주세요.',
-  fast: '진료가 빨라 주사실이 금방 차요. 동료를 <b>처치 위주</b>로 돌리고, 처방 변경이 잦으니 약은 1~2개씩만 챙기세요.',
-  caller: '원장님 호출이 수시로 와요. 처치는 동료에게 맡기고(<b>처치 위주</b>), 나는 데스크·호출 대응 위주로.',
+  slow: '진료가 길어 접수·수납실이 붐벼요. 후배는 <b>접수·수납 위주</b>로, 대기 환자 인내심을 지켜 주세요.',
+  fast: '진료가 빨라 주사실이 금방 차요. 후배를 <b>처치 위주</b>로 돌리고, 처방 변경이 잦으니 약은 1~2개씩만 챙기세요.',
   creep: '불쾌한 말에 대비해 멘탈을 아껴 두세요. 초코바·간식으로 멘탈과 체력을 미리 채워 두는 게 좋아요.',
 };
 function estPatients() {
@@ -2161,11 +2193,13 @@ function minimapSVG(doc) {
   return g + '</svg>';
 }
 function renderBriefMap(doc) {
-  const nMates = save.day <= 3 ? 2 : 1;
+  const nJ = juniorsFor(save.day).length;
   const beds = Math.min(4, save.clinic.ivBeds) + Math.min(4, save.clinic.heatBeds);
   const evs = [
-    ['drop', '채혈 1~2건'], ['lunch', '점심 13~14시'], ['clock', '17:30 접수 마감'], ['megaphone', '실장 순찰'],
+    ['drop', '채혈 1~2건'], ['lunch', doc.biz ? '점심 30분만' : '점심 13~14시', doc.biz ? 1 : 0], ['clock', '17:30 접수 마감'], ['megaphone', '팀장님 지시'],
   ];
+  if (doc.quiz) evs.push(['book', '원장님 기습 질문', 1]);
+  if (doc.biz) evs.push(['clock', '마감 연장 가능', 1]);
   if (save.day >= 2) evs.push(['heartPulse', '응급 환자 가능', 1], ['stetho', '처방 변경', 1]);
   if (doc.harass) evs.push(['warning', '불쾌한 발언', 1]);
   if (doc.kind) evs.push(['cup', '커피 이벤트']);
@@ -2173,8 +2207,8 @@ function renderBriefMap(doc) {
   $('#brief-map').innerHTML = `<div class="map-wrap">${minimapSVG(doc)}</div>
     <div class="scale-grid">
       <div><b>1</b><small>의사</small></div>
-      <div><b>${1 + nMates}</b><small>간호사 (나+동료)</small></div>
-      <div><b>1</b><small>간호실장</small></div>
+      <div><b>1</b><small>간호팀장</small></div>
+      <div><b>${1 + nJ}</b><small>간호사 (나${nJ ? '+후배' : ''})</small></div>
       <div><b>${beds}</b><small>치료 침대</small></div>
       <div><b>16</b><small>대기 의자</small></div>
       <div><b>~${estPatients()}</b><small>예상 환자</small></div>
@@ -2210,21 +2244,22 @@ $('#btn-brief-look').addEventListener('click', startPreview);
 $('#pv-back').addEventListener('click', () => { endPreview(); $('#screen-brief').classList.remove('hidden'); });
 $('#pv-go').addEventListener('click', () => { endPreview(); $('#btn-brief-go').click(); });
 function openBrief() {
-  briefDoc = pickDoctor();
+  if (!briefDoc || briefDoc._day !== save.day) briefDoc = { ...pickDoctor(), _day: save.day };
   const rank = RANKS[save.rank];
   $('#brief-eyebrow').textContent = `DAY ${save.day} · ${rank.name} · 시급 ${won(rank.wage)}`;
   $('#brief-title').textContent = save.day === 1 ? '첫 출근 · 작전을 세워 보세요' : '출근 전 작전 회의';
-  const nMates = save.day <= 3 ? 2 : 1;
+  const juniors = juniorsFor(save.day);
   const mx = maxStat();
   const bar = (label, v, c) => `<div>${label} ${v}/${mx}<b><i style="width:${v / mx * 100}%;background:${c}"></i></b></div>`;
   $('#brief-body').innerHTML = `<div class="brief-grid">
     <div class="brief-item"><span class="bi">${icon('stetho')}</span><div><b>${briefDoc.name}<span class="tag ${briefDoc.good ? 'good' : ''}">${briefDoc.trait}</span></b><p>${briefDoc.desc}</p></div></div>
-    <div class="brief-item"><span class="bi">${icon('users')}</span><div><b>함께 일하는 동료 ${nMates}명</b><p>${MATE_DEFS.slice(0, nMates).map((m) => m.name).join(', ')}${save.day === 4 ? ' · <b>이 선생님이 이직했어요.</b> (간호사 72.1%가 이직을 고민)' : ''}</p></div></div>
-    <div class="brief-item"><span class="bi">${icon('megaphone')}</span><div><b>최 실장 순찰 예정</b><p>원장님 앞에선 싹싹, 우리한텐… 쉬는 걸 들키지 마세요.</p></div></div>
+    <div class="brief-item"><span class="bi">${icon('megaphone')}</span><div><b>한 팀장과 함께 근무</b><p>같이 환자를 보면서 중간중간 지시를 내려요. 원장님 앞에선 싹싹, 나에겐 모질어요.</p></div></div>
+    <div class="brief-item"><span class="bi">${icon('users')}</span><div><b>후배 ${juniors.length}명</b><p>${juniors.length ? juniors.map((m) => m.name).join(', ') : '아직 후배가 없어요. 팀장님과 둘이서 버텨야 해요.'}${juniors.some((m) => m.from === save.day) ? ' · <b>오늘 입사!</b>' : ''}</p></div></div>
     <div class="brief-item"><span class="bi">${icon('battery')}</span><div><b>컨디션 · ${HOMES[save.home].name}에서 출근</b><div class="bars2">${bar('체력', Math.round(save.stamina), '#1fb39a')}${bar('멘탈', Math.round(save.mental), '#f06292')}</div></div></div>
     <div class="plan"><h4>${icon('sparkle')}추천 작전</h4><p>${DOC_PLAN[briefDoc.id]}</p></div>
     <div class="brief-mates"><b>${icon('users')}동료 업무 미리 지정</b>
-      ${MATE_DEFS.slice(0, nMates).map((m, i) => `<div class="mate-row"><span class="mate-name">${m.name}</span><div class="focus-seg">${Object.entries(FOCUS).map(([k, v]) => `<button data-bmate="${i}" data-bfocus="${k}" class="${(save.focus[i] || 'auto') === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('')}
+      <div class="mate-row locked"><span class="mate-name">${LEAD_DEF.name}</span><span class="lock-tag">상사 · 지정 불가</span></div>
+      ${juniors.map((m, i) => `<div class="mate-row"><span class="mate-name">${m.name}</span><div class="focus-seg">${Object.entries(FOCUS).map(([k, v]) => `<button data-bmate="${i}" data-bfocus="${k}" class="${(save.focus[i] || 'auto') === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('')}
     </div>
   </div>`;
   renderBriefMap(briefDoc);
@@ -2246,7 +2281,11 @@ function pause(on) {
   $('#screen-pause').classList.toggle('hidden', !on);
 }
 function refreshStartButton() { $('#btn-start').textContent = save.day > 1 ? `DAY ${save.day} 출근하기` : '출근하기'; }
-$('#btn-start').addEventListener('click', () => { $('#screen-start').classList.add('hidden'); openBrief(); });
+$('#btn-start').addEventListener('click', () => {
+  $('#screen-start').classList.add('hidden');
+  briefDoc = { ...pickDoctor(), _day: save.day };
+  playStory(briefDoc, openBrief);
+});
 $('#btn-reset').addEventListener('click', () => {
   if (!confirm('저장된 진행 상황(돈, 집, 승진, 날짜)을 모두 지울까요?')) return;
   save = defaultSave(); persist(); refreshStartButton(); updateChocoBtn();
@@ -2289,10 +2328,322 @@ updateChocoBtn();
 fitCamera();
 requestAnimationFrame(frame);
 
+// ================= 의료지식 퀴즈 =================
+const QUIZ = [
+  { q: '성인의 정상 호흡수(분당)는?', o: ['12~20회', '6~10회', '25~35회', '40~60회'], a: 0, e: '성인 안정 시 호흡수는 분당 <b>12~20회</b>가 정상 범위예요.' },
+  { q: '성인의 정상 맥박수(분당)는?', o: ['60~100회', '40~50회', '110~130회', '140~160회'], a: 0, e: '성인 안정 시 맥박은 분당 <b>60~100회</b>가 정상이에요.' },
+  { q: '근육주사(IM)의 바늘 삽입 각도는?', o: ['90°', '10~15°', '45°', '5°'], a: 0, e: '근육주사 <b>90°</b>, 피하주사 45~90°, 피내주사 10~15°예요.' },
+  { q: '피내주사(ID)의 바늘 삽입 각도는?', o: ['10~15°', '45°', '90°', '60°'], a: 0, e: '피내주사는 피부 바로 아래로 <b>10~15°</b>로 얕게 넣어요.' },
+  { q: '투약의 기본 원칙(5 Right)에 포함되지 않는 것은?', o: ['정확한 가격', '정확한 환자', '정확한 약물', '정확한 시간'], a: 0, e: '5 Right는 <b>환자·약물·용량·경로·시간</b>이에요.' },
+  { q: '생리식염수(Normal saline)의 NaCl 농도는?', o: ['0.9%', '0.45%', '3%', '5%'], a: 0, e: '생리식염수는 <b>0.9%</b> NaCl 등장액이에요.' },
+  { q: '일반적으로 저혈당으로 보는 혈당 기준은?', o: ['70 mg/dL 미만', '100 mg/dL 미만', '126 mg/dL 이상', '200 mg/dL 이상'], a: 0, e: '혈당 <b>70 mg/dL 미만</b>이면 저혈당으로 보고 바로 대처해요.' },
+  { q: '당뇨병 진단 기준이 되는 공복 혈당은?', o: ['126 mg/dL 이상', '100 mg/dL 이상', '110 mg/dL 이상', '90 mg/dL 이상'], a: 0, e: '8시간 이상 공복 혈당 <b>126 mg/dL 이상</b>이면 당뇨병 진단 기준이에요.' },
+  { q: '아나필락시스 응급 시 1차로 투여하는 약물은?', o: ['에피네프린', '아세트아미노펜', '인슐린', '헤파린'], a: 0, e: '아나필락시스의 1차 약물은 <b>에피네프린</b> 근육주사예요.' },
+  { q: '일반 혈액검사(CBC)용 EDTA 채혈 튜브의 뚜껑 색은?', o: ['보라색', '노란색', '빨간색', '하늘색'], a: 0, e: 'EDTA 튜브는 <b>보라색</b> 캡. 하늘색은 응고검사용 구연산나트륨 튜브예요.' },
+  { q: '채혈 시 토니켓(지혈대)은 보통 얼마 이내로 묶어야 할까요?', o: ['1분 이내', '5분', '10분', '30분'], a: 0, e: '토니켓은 <b>1분 이내</b>로. 오래 묶으면 검사 결과가 왜곡될 수 있어요.' },
+  { q: '정상 산소포화도(SpO₂) 범위로 가장 적절한 것은?', o: ['95~100%', '85~90%', '75~80%', '60~70%'], a: 0, e: '건강한 성인의 SpO₂는 보통 <b>95~100%</b>예요.' },
+  { q: '인슐린의 일반적인 투여 경로는?', o: ['피하주사', '근육주사', '피내주사', '경구 복용'], a: 0, e: '인슐린은 보통 <b>피하주사</b>로 투여해요.' },
+  { q: '진료실 혈압 기준, 고혈압 진단 기준은?', o: ['140/90 mmHg 이상', '120/80 mmHg 이상', '110/70 mmHg 이상', '160/110 mmHg 이상'], a: 0, e: '진료실 혈압 <b>140/90 mmHg 이상</b>이면 고혈압으로 진단해요.' },
+  { q: '알코올 손소독제로 손 위생을 할 때 권장 시간은?', o: ['20~30초', '3~5초', '2분', '5분'], a: 0, e: 'WHO 권고: 알코올 손소독 <b>20~30초</b>, 물과 비누는 40~60초.' },
+  { q: '성인의 정상 체온(구강)으로 가장 적절한 것은?', o: ['36.5℃', '35.0℃', '38.5℃', '39.5℃'], a: 0, e: '구강 체온은 보통 <b>36.5℃</b> 안팎이 정상이에요.' },
+];
+const quiz = { open: false, cb: null, ans: -1, timer: null, used: [] };
+function openQuiz(who, cb) {
+  let pool = QUIZ.map((_, i) => i).filter((i) => !quiz.used.includes(i));
+  if (!pool.length) { quiz.used = []; pool = QUIZ.map((_, i) => i); }
+  const qi = pick(pool); quiz.used.push(qi);
+  const Q = QUIZ[qi];
+  const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  quiz.open = true; quiz.cb = cb; quiz.ans = order.indexOf(Q.a); quiz.result = null;
+  if (S && !S.ended) S.modal = true;
+  $('#quiz-who').textContent = who;
+  $('#quiz-q').textContent = Q.q;
+  $('#quiz-opts').innerHTML = order.map((oi, k) => `<button data-k="${k}">${['①', '②', '③', '④'][k]} ${Q.o[oi]}</button>`).join('');
+  const exp = $('#quiz-exp'); exp.innerHTML = Q.e; exp.classList.add('hidden');
+  $('#quiz-ok').classList.add('hidden');
+  $('#screen-quiz').classList.remove('hidden');
+  let left = 10;
+  const bar = $('#quiz-timer');
+  bar.style.transform = 'scaleX(1)';
+  clearInterval(quiz.timer);
+  quiz.timer = setInterval(() => { left -= 0.05; bar.style.transform = `scaleX(${Math.max(0, left / 10)})`; if (left <= 0) answerQuiz(-1); }, 50);
+}
+function answerQuiz(k) {
+  if (quiz.result !== undefined && quiz.result !== null) return;
+  clearInterval(quiz.timer);
+  quiz.result = k === quiz.ans;
+  $('#quiz-opts').querySelectorAll('button').forEach((b, i) => { b.disabled = true; if (i === quiz.ans) b.classList.add('ok'); else if (i === k) b.classList.add('bad'); });
+  if (k === -1) $('#quiz-who').textContent = '시간 초과!';
+  $('#quiz-exp').classList.remove('hidden');
+  $('#quiz-ok').classList.remove('hidden');
+}
+$('#quiz-opts').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (b && quiz.open) answerQuiz(+b.dataset.k); });
+$('#quiz-ok').addEventListener('click', () => {
+  const ok = quiz.result, cb = quiz.cb;
+  quiz.open = false; quiz.result = null; quiz.cb = null;
+  $('#screen-quiz').classList.add('hidden');
+  if (S && !S.ended) S.modal = false;
+  if (cb) cb(ok);
+});
+
+// ================= 스토리 디오라마 =================
+const CS = { active: false, renderer: null, scene: null, camera: null, cast: {}, steps: [], i: -1, typing: null, wait: 0, done: null, t: 0, speaker: null };
+const WHO = {
+  boss: { name: '최원장', color: '#c9a227' }, lead: { name: '한 팀장', color: '#2d3e66' }, me: { name: '나', color: '#ff6257' },
+  park: { name: '박 선생', color: '#4a90d9' }, lee: { name: '이 선생', color: '#e84393' }, sub: { name: '', color: '#3b6fb6' },
+};
+function csInit() {
+  if (CS.renderer) return;
+  CS.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  CS.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  CS.renderer.shadowMap.enabled = true;
+  CS.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  $('#cs-stage').appendChild(CS.renderer.domElement);
+  CS.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+  const resize = () => { const w = innerWidth, h = innerHeight; CS.renderer.setSize(w, h, false); CS.camera.aspect = w / h; CS.camera.updateProjectionMatrix(); };
+  addEventListener('resize', resize); resize();
+}
+function buildDiorama(set) {
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x9fc9be, 1.4));
+  const key = new THREE.DirectionalLight(0xfff3e0, 1.9);
+  key.position.set(4, 8, 6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 });
+  sc.add(key);
+  const base = cyl(4.4, 4.6, 0.5, '#c9a37a', 0, -0.26, 0, sc, 48);
+  base.receiveShadow = true;
+  cyl(4.2, 4.2, 0.04, set === 'interview' ? '#dff1ec' : '#f6ecd6', 0, 0.01, 0, sc, 48).receiveShadow = true;
+  box(6.2, 2.6, 0.18, '#f7faf9', 0, 1.3, -2.7, sc);
+  const sideWall = box(0.18, 2.6, 4.6, '#eef4f2', -3.0, 1.3, -0.4, sc);
+  sideWall.rotation.y = 0.12;
+  box(1.8, 1.1, 0.06, '#bfe3f0', 1.2, 1.6, -2.6, sc, { emissive: '#bfe3f0', emissiveIntensity: 0.25 });
+  box(1.95, 0.08, 0.1, '#ffffff', 1.2, 2.18, -2.58, sc); box(1.95, 0.08, 0.1, '#ffffff', 1.2, 1.02, -2.58, sc);
+  box(1.6, 0.42, 0.06, '#2bb5a0', -1.3, 2.05, -2.6, sc);
+  box(0.16, 0.16, 0.07, '#ffffff', -2.0, 2.05, -2.56, sc);
+  const clockG = cyl(0.22, 0.22, 0.05, '#ffffff', -0.4, 2.0, -2.58, sc, 24); clockG.rotation.x = Math.PI / 2;
+  const pl = { x: 2.6, z: -1.9 };
+  cyl(0.24, 0.18, 0.4, '#c98b5a', pl.x, 0.2, pl.z, sc, 12); sph(0.38, '#5cb874', pl.x, 0.7, pl.z, sc); sph(0.26, '#4aa863', pl.x + 0.15, 0.95, pl.z, sc);
+  if (set === 'interview' || set === 'meeting') {
+    box(2.0, 0.75, 0.9, '#c99a6b', 0, 0.375, 0, sc);
+    box(0.5, 0.36, 0.05, '#2d3436', -0.4, 0.96, -0.2, sc);
+    box(0.5, 0.04, 0.35, '#ffffff', 0.35, 0.77, 0.05, sc); // 이력서
+    if (set === 'meeting') {
+      box(1.6, 1.0, 0.05, '#ffffff', -1.3, 1.5, -2.58, sc);
+      const ln = box(1.2, 0.05, 0.02, '#e84393', -1.3, 1.45, -2.54, sc); ln.rotation.z = -0.35;
+    }
+  } else {
+    box(3.2, 1.0, 0.6, '#e6c48f', 0, 0.5, -1.0, sc);
+    box(3.3, 0.06, 0.75, '#fff7e8', 0, 1.03, -1.0, sc);
+    box(0.5, 0.36, 0.05, '#2d3436', -0.6, 1.25, -1.1, sc);
+    box(0.45, 1.3, 0.4, '#2bb5a0', 2.3, 0.65, 0.3, sc);
+  }
+  return sc;
+}
+function storyFor(doc) {
+  const day = save.day;
+  const sub = !doc.owner;
+  const castBase = (extra = []) => [
+    { k: 'boss', x: -1.3, z: 0.5, rot: 0.85 }, { k: 'lead', x: 0, z: -1.7, rot: 0 }, { k: 'me', x: 1.4, z: 0.6, rot: -0.85 }, ...extra,
+  ];
+  if (day === 1) return {
+    title: 'STAGE 1 · 햇살내과의원 — 면접', set: 'interview',
+    cast: [{ k: 'boss', x: -1.15, z: -0.05, rot: Math.PI / 2, pose: 'sit' }, { k: 'lead', x: -0.35, z: -1.35, rot: 0.25 }, { k: 'me', x: 1.15, z: 0.05, rot: -Math.PI / 2, pose: 'sit', look: 'interview' }],
+    steps: [
+      { who: 'narr', text: '동네 의원 「햇살내과의원」 · 면접 날 오후' },
+      { who: 'boss', text: '간호사 면허 있고… 신규라고? 경력은 없네.' },
+      { who: 'boss', text: '우리 병원은 환자가 곧 매출이야. 일은 빠릿빠릿하게 해야 돼.' },
+      { who: 'lead', text: '원장님~ 요즘 신규들 다 이래요. 제가 잘 가르칠게요 호호.' },
+      { who: 'boss', text: '그럼 하나만 물어볼까? 간호사면 이 정도는 알아야지.' },
+      { quiz: 'boss', who: 'boss', ok: '흠, 기본은 되네. 합격.', bad: '…그것도 몰라? 뭐, 일하면서 배워. 사람이 급하니까.' },
+      { who: 'lead', text: '(정색하며) 내일부터 바로 나올 수 있죠? 8시 반까지 와요. 인계 받아야 하니까.' },
+      { who: 'me', text: '네…? 내, 내일부터요?' },
+      { who: 'lead', text: '사람이 없어서 그래요. 시급은 원장님이 최저보다 더 쳐준대요.' },
+      { who: 'boss', text: '그래, 내일 봐요. 아, 점심은… 바쁘면 좀 늦게 먹고. 하하.' },
+      { who: 'narr', text: '그렇게 다음 날 아침 8시 30분, 첫 출근이 시작됐다.' },
+    ],
+  };
+  const juniorsNow = juniorsFor(day);
+  const jCast = juniorsNow.map((m, i) => ({ k: i === 0 ? 'park' : 'lee', x: 0.5 + i * 0.7, z: 1.4, rot: Math.PI - 0.2 }));
+  if (sub) return {
+    title: `DAY ${day} · 원장님 학회 가는 날`, set: 'station', cast: castBase(jCast), subDoc: doc,
+    steps: [
+      { who: 'narr', text: `오늘 최원장님은 학회. 대진으로 ${doc.name.replace('대진 ', '')}님이 오셨다.` },
+      { who: 'sub', text: doc.kind ? '오늘 하루 잘 부탁해요~ 다들 무리하지 말고요.' : doc.id === 'fast' ? '빨리빨리 봅시다. 처방 바뀌면 바로 따라와요.' : doc.id === 'slow' ? '저는 한 분 한 분 자세히 보는 편이라… 대기가 좀 길어질 거예요.' : '아, 여기 간호사분들 다 젊네? 하하.' },
+      { who: 'lead', text: '선생님~ 필요한 거 있으면 저한테 말씀만 하세요 호호.' },
+      { who: 'lead', text: '(돌아서서) 김 선생, 대진 날이라고 느슨해지지 마요.' },
+    ],
+  };
+  if (day === 2) return {
+    title: 'DAY 2 · 아침 조회', set: 'station', cast: castBase(),
+    steps: [
+      { who: 'narr', text: '출근 이틀째, 08:30 아침 조회' },
+      { who: 'lead', text: '어제 기록 봤어요. 신규라도 기록은 칼같이 해요.' },
+      { who: 'boss', text: '오늘은 환자 좀 많이 받아 보자고. 점심은 30분이면 충분하지?' },
+      { who: 'me', text: '(…어제도 점심 제대로 못 먹었는데)' },
+      { who: 'lead', text: '네~ 원장님! 저희가 알아서 할게요 호호.' },
+    ],
+  };
+  if (day === 3) return {
+    title: 'DAY 3 · 새 얼굴', set: 'station', cast: castBase(jCast),
+    steps: [
+      { who: 'lead', text: '오늘부터 같이 일할 박 선생이에요. 인사해요.' },
+      { who: 'park', text: '안녕하세요! 박지은입니다. 잘 부탁드립니다!' },
+      { who: 'lead', text: '김 선생이 좀 가르쳐줘요. 나는 바쁘니까.' },
+      { who: 'me', text: '(나도 이제 겨우 3일차인데…)' },
+      { who: 'narr', text: '이제 후배에게 업무를 지정할 수 있어요.' },
+    ],
+  };
+  if (day === 4) return {
+    title: 'DAY 4 · 매출 회의', set: 'meeting', cast: [{ k: 'boss', x: -1.15, z: -0.05, rot: Math.PI / 2, pose: 'sit' }, { k: 'lead', x: -0.35, z: -1.35, rot: 0.25 }, { k: 'me', x: 1.3, z: 0.4, rot: -Math.PI / 2 }, ...jCast.map((c) => ({ ...c, x: 1.3, z: -0.7, rot: -Math.PI / 2 }))],
+    steps: [
+      { who: 'boss', text: '이번 달 매출이 영 별로야. 수액 많이 권해 봐. 회전율도 올리고.' },
+      { who: 'lead', text: '네 원장님~ 애들한테 단단히 일러둘게요.' },
+      { who: 'lead', text: '(작게) 들었죠? 오늘 한 명도 그냥 보내지 마요.' },
+      { quiz: 'boss', who: 'boss', pre: '아 그리고 김 선생, 이거 알지?', ok: '오, 좀 늘었네?', bad: '아직도 몰라? 공부 좀 해.' },
+    ],
+  };
+  if (day === 5) return {
+    title: 'DAY 5 · 또 한 명', set: 'station', cast: castBase(jCast),
+    steps: [
+      { who: 'lead', text: '이 선생, 인사해요.' },
+      { who: 'lee', text: '이수아입니다… 잘 부탁드립니다.' },
+      { who: 'boss', text: '사람 늘었으니까 환자 더 받을 수 있지? 하하.' },
+      { who: 'me', text: '(사람이 늘면… 일도 느는 거였구나)' },
+    ],
+  };
+  const pool = [
+    [{ who: 'boss', text: '옆 의원이 수액을 싸게 한다던데… 우리도 회전율 올려야 해.' }, { who: 'lead', text: '네 원장님~ 오늘은 더 빨리 돌릴게요.' }],
+    [{ who: 'lead', text: '어제 화나서 간 환자 있었죠? 오늘은 그런 일 없게 해요.' }, { who: 'me', text: '네… 알겠습니다.' }],
+    [{ who: 'boss', text: '토요일 진료도 해 볼까? …농담이야, 아직은.' }, { who: 'me', text: '(아직은…?)' }],
+  ];
+  const steps = [{ who: 'narr', text: `DAY ${day} · 아침 조회` }, ...pick(pool)];
+  if (Math.random() < 0.5) steps.push({ who: 'lead', text: '자, 아침 퀴즈. 이것도 모르면 곤란해요.' }, { quiz: 'lead', who: 'lead', ok: '…맞았네요. 오늘도 그렇게 해요.', bad: '하… 기본부터 다시 봐요.' });
+  return { title: `DAY ${day} · 아침 조회`, set: 'station', cast: castBase(jCast), steps };
+}
+function makeCastModel(k, c, doc) {
+  if (k === 'boss') return makeDoctor(DOCTORS[0].look);
+  if (k === 'sub') return makeDoctor(doc.look);
+  if (k === 'lead') return makeLead();
+  if (k === 'park') return makeNurse(MATE_DEFS[0].look);
+  if (k === 'lee') return makeNurse(MATE_DEFS[1].look);
+  if (c.look === 'interview') return makeChibi({ top: '#f4f4f4', pants: '#34405a', shoes: '#222222', hair: '#3a2a22', hairLen: 0.52, eyeSquash: 0.9, brows: '#3a2a22', browAngle: -0.2 });
+  return makeNurse();
+}
+function playStory(doc, done) {
+  const story = storyFor(doc);
+  if (!story) { done(); return; }
+  csInit();
+  CS.scene = buildDiorama(story.set);
+  CS.cast = {};
+  for (const c of story.cast) {
+    const key = c.k === 'boss' && story.subDoc ? 'sub' : c.k;
+    const ch = makeCastModel(key, c, story.subDoc);
+    ch.g.position.set(c.x, 0, c.z);
+    ch.g.rotation.y = c.rot;
+    setPose(ch, c.pose || 'stand');
+    if (c.pose === 'sit') chair(c.x - Math.sin(c.rot) * 0.12, c.z - Math.cos(c.rot) * 0.12, c.rot, '#7d8f8b', CS.scene);
+    CS.scene.add(ch.g);
+    CS.cast[key] = { ch, base: c.rot, enter: c.k === 'park' && save.day === 3 || c.k === 'lee' && save.day === 5 };
+    if (CS.cast[key].enter) ch.g.position.x += 3.5;
+    CS.cast[key].tx = c.x;
+  }
+  WHO.sub.name = story.subDoc ? story.subDoc.name : '';
+  CS.steps = story.steps.slice();
+  CS.i = -1; CS.t = 0; CS.done = done; CS.active = true; CS.speaker = null;
+  $('#cs-title').textContent = story.title;
+  const root = $('#cutscene');
+  root.classList.remove('hidden'); root.classList.add('intro');
+  setTimeout(() => root.classList.remove('intro'), 60);
+  csNext();
+}
+function csShow(who, text) {
+  const box2 = $('#cs-box');
+  box2.classList.toggle('narr', who === 'narr');
+  const w = $('#cs-who');
+  if (who === 'narr') { w.textContent = ''; } else { w.textContent = WHO[who].name; w.style.setProperty('--who', WHO[who].color); }
+  CS.speaker = who === 'narr' ? null : who;
+  CS.typing = { text, n: 0 };
+  $('#cs-text').textContent = '';
+  CS.wait = 0;
+}
+function csNext() {
+  if (quiz.open) return;
+  CS.i++;
+  if (CS.i >= CS.steps.length) { csEnd(); return; }
+  const st = CS.steps[CS.i];
+  if (st.quiz) {
+    if (st.pre) { CS.steps.splice(CS.i, 0, { who: st.who, text: st.pre }); delete st.pre; csShow(st.who, CS.steps[CS.i].text); return; }
+    CS.typing = null;
+    openQuiz(st.quiz === 'boss' ? '최원장의 면접 질문' : '한 팀장의 아침 퀴즈', (ok) => {
+      if (ok) { save.mental = Math.min(maxStat(), save.mental + 3); save.evalPts += 5; } else { save.mental = Math.max(20, save.mental - 5); }
+      persist();
+      CS.steps.splice(CS.i + 1, 0, { who: st.who, text: ok ? st.ok : st.bad });
+      csNext();
+    });
+    return;
+  }
+  csShow(st.who, st.text);
+}
+function csEnd() {
+  if (!CS.active) return;
+  CS.active = false;
+  $('#cutscene').classList.add('hidden');
+  const d = CS.done; CS.done = null;
+  if (d) d();
+}
+$('#cutscene').addEventListener('click', (e) => {
+  if (e.target.closest('#cs-skip')) { if (!quiz.open) csEnd(); return; }
+  if (!CS.active || quiz.open) return;
+  if (CS.typing && CS.typing.n < CS.typing.text.length) { CS.typing.n = CS.typing.text.length; $('#cs-text').textContent = CS.typing.text; return; }
+  csNext();
+});
+function csFrame(dt, t) {
+  CS.t += dt;
+  if (CS.typing && !quiz.open) {
+    const tp = CS.typing;
+    if (tp.n < tp.text.length) { tp.n = Math.min(tp.text.length, tp.n + dt * 30); $('#cs-text').textContent = tp.text.slice(0, Math.floor(tp.n)); }
+    else if ((CS.wait += dt) > Math.max(2.4, tp.text.length * 0.07)) csNext();
+  }
+  // 캐릭터 연기
+  const sp = CS.speaker && CS.cast[CS.speaker === 'boss' && CS.cast.sub ? 'sub' : CS.speaker];
+  for (const [k, c] of Object.entries(CS.cast)) {
+    const ch = c.ch;
+    if (c.enter) {
+      const dx = c.tx - ch.g.position.x;
+      const moving = Math.abs(dx) > 0.02;
+      if (moving) { ch.g.position.x += Math.sign(dx) * Math.min(Math.abs(dx), dt * 1.8); ch.g.rotation.y = -Math.PI / 2; } else ch.g.rotation.y += (c.base - ch.g.rotation.y) * Math.min(1, dt * 6);
+      animateChibi(ch, dt, moving, t);
+    } else animateChibi(ch, dt, false, t);
+    if (sp && c === sp) {
+      ch.head.rotation.x = Math.sin(t * 9) * 0.08;
+      ch.arms[1].rotation.x = -0.8 + Math.sin(t * 6) * 0.35;
+    } else {
+      ch.head.rotation.x = 0;
+      if (ch.pose !== 'sit') ch.arms[1].rotation.x *= 0.9;
+      if (sp) {
+        const dx2 = sp.ch.g.position.x - ch.g.position.x, dz2 = sp.ch.g.position.z - ch.g.position.z;
+        let rel = Math.atan2(dx2, dz2) - ch.g.rotation.y;
+        while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2;
+        ch.head.rotation.y += (clamp(rel, -0.7, 0.7) - ch.head.rotation.y) * Math.min(1, dt * 4);
+      }
+    }
+  }
+  // 카메라: 천천히 돌며 다가가기 + 말하는 사람 쪽으로 살짝
+  const k2 = Math.min(1, CS.t / 14);
+  const port = CS.camera.aspect < 0.8 ? 1.5 : 1;
+  const ang = -0.45 + k2 * 0.7, r = (8.6 - k2 * 1.4) * port, h = (4.4 - k2 * 0.6) * (port > 1 ? 1.25 : 1);
+  const look = new THREE.Vector3(0, 0.95, 0);
+  if (sp) look.lerp(new THREE.Vector3(sp.ch.g.position.x, 1.0, sp.ch.g.position.z), 0.35);
+  CS.look = CS.look ? CS.look.lerp(look, Math.min(1, dt * 2.5)) : look;
+  CS.camera.position.set(Math.sin(ang) * r, h, Math.cos(ang) * r);
+  CS.camera.lookAt(CS.look);
+  CS.renderer.render(CS.scene, CS.camera);
+}
+
 // 테스트용 훅
 window.__game = {
   get S() { return S; }, player, get mates() { return mates; }, get lead() { return lead; }, enqueue, onPatientTap, freeBed: (k) => S && freeBed(k), phoneBtn, MEDS,
-  get pickFn() { return pickFn; }, blood, openCabinet,
+  get pickFn() { return pickFn; }, blood, openCabinet, quiz, CS, answerQuiz,
   focus(x, z, d = 6, y = 0.8) {
     if (x === undefined) { focusing = false; fitCamera(); ovEl.style.display = ''; return; }
     focusing = true;
