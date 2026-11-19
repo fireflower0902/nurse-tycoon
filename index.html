@@ -36,7 +36,7 @@
   <link rel="apple-touch-icon" href="icon-180.png" />
   <title>간호사 타이쿤: 오늘도 칼퇴 실패 · 3D 모바일 타이쿤 게임</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
   </script>
@@ -129,7 +129,7 @@
         <li><span data-icon="pinch"></span><div><b>두 손가락으로 확대·이동</b><small>더블탭으로도 확대돼요</small></div></li>
       </ul>
       <button id="btn-start" class="primary">출근하기</button>
-      <button id="btn-howto" class="secondary"><span data-icon="help"></span>게임 방법 보기</button>
+      <button id="btn-howto" class="secondary"><span data-icon="tap"></span>튜토리얼로 배우기 (2분)</button>
       <button id="btn-reset" class="ghost">처음부터 다시</button>
     </div>
   </div>
@@ -277,6 +277,28 @@
     </div>
   </div>
 
+  <!-- 튜토리얼 코치 -->
+  <div id="coach" class="hidden">
+    <div class="coach-hole"></div>
+    <div class="coach-finger" data-icon="tap"></div>
+    <div class="coach-card">
+      <div class="coach-top"><span class="coach-step" id="coach-step">1/12</span><button id="coach-skip">그만하기</button></div>
+      <p class="coach-text" id="coach-text"></p>
+      <button id="coach-next" class="primary hidden">다음</button>
+    </div>
+  </div>
+
+  <!-- 첫 출근 전 튜토리얼 권유 -->
+  <div id="screen-tutask" class="screen hidden">
+    <div class="card small">
+      <div class="brand-mark soft" data-icon="tap"></div>
+      <h2>처음이신가요?</h2>
+      <p class="sub" style="font-size:13px;margin:-6px 0 12px">2분이면 기본 조작과 환자 흐름을<br>직접 해 보며 익힐 수 있어요</p>
+      <button id="btn-tut-yes" class="primary">튜토리얼 하기</button>
+      <button id="btn-tut-no" class="ghost">바로 출근할게요</button>
+    </div>
+  </div>
+
   <!-- 스토리 디오라마 -->
   <div id="cutscene" class="hidden">
     <div id="cs-stage"></div>
@@ -308,6 +330,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js?v=9"></script>
+  <script type="module" src="game.js?v=10"></script>
 </body>
 </html>

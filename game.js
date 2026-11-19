@@ -3,8 +3,8 @@
  * Three.js (CDN importmap), 빌드 없음. 모바일 세로 화면 기준.
  * ========================================================= */
 import * as THREE from 'three';
-import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=9';
-import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=9';
+import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=10';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=10';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -461,7 +461,7 @@ function stationBtn(html, p, y, onTap, cls = '', rail = null) {
 }
 const playing = () => S && !S.paused && !S.ended && !S.modal;
 const guard = (fn) => () => { if (playing()) fn(); };
-stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot');
+const cabBtn = stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot');
 stationBtn(`<span class="pin">${icon('toilet')}</span><small>화장실</small>`, R('pantry', 1.5, -2.1), 1.3, guard(() => enqueue(player, { kind: 'toilet' })), 'toilet', '#rail-right');
 const snackBtn = stationBtn(`<span class="pin">${icon('onigiri')}</span><small>간식</small>`, R('pantry', -0.8, -2.4), 1.3, guard(() => enqueue(player, { kind: 'snack' })), 'snack', '#rail-right');
 const chartBtn = stationBtn(`<span class="pin">${icon('clipboard')}<span class="chart-count"></span></span><small>기록</small>`, MON_POS, 1.55, guard(() => {
@@ -661,7 +661,7 @@ function toast(msg, kind = '') {
 }
 let hintTimer = null;
 function hint(key, msg) {
-  if (save.seen[key]) return;
+  if (save.seen[key] || (S && S.tut)) return;
   save.seen[key] = true; persist();
   const [ic, text] = splitIcon(msg, 'info');
   el.hint.innerHTML = `<span class="h-ic">${icon(ic)}</span><div><b>TIP</b><span></span></div>`;
@@ -786,7 +786,7 @@ function newDay(doc) {
   const day = save.day;
   const mx = maxStat();
   S = {
-    t: 0, closed: false, intakeClosed: false, ended: false, paused: false, modal: false,
+    t: 0, clock: 0, closed: false, intakeClosed: false, ended: false, paused: false, modal: false,
     doc, patients: new Map(), leavers: [], nextId: 1, ticket: 0,
     examQ: [], D: { cur: null, next: null, t: 0, dur: 1 },
     seatOwner: { lobby: Array(SEATS.lobby.length).fill(null), inject: Array(SEATS.inject.length).fill(null) },
@@ -849,6 +849,7 @@ function spawnPatient(type, opts = {}) {
   S.patients.set(p.id, p);
   if (p.state === 'arrive') goTo(p, SP.ticket);
   else if (p.state === 'pay') goTo(p, takeSeat(p, 'lobby'));
+  else if (p.state === 'order') { p.order = opts.order; p.med = opts.med || null; goTo(p, takeSeat(p, 'inject')); }
   renderPatient(p);
   return p;
 }
@@ -1178,7 +1179,7 @@ const ACT = {
     apply: (t, a, c) => {
       const p = P(t), bed = p.bed;
       if (p.order === 'iv') useMed(a, p, c.med);
-      bed.dur = bed.t = p.order === 'iv' ? 22 : 15;
+      bed.dur = bed.t = S.tut ? 4 : p.order === 'iv' ? 22 : 15;
       bed.ov.style.visibility = 'visible'; bed.ov.firstChild.style.width = '0%';
       refill(p, 0.4); setState(p, 'bed'); addChart();
     },
@@ -1444,10 +1445,10 @@ function updateDoctor(dt) {
   D.t += dt;
   if (D.t < D.dur) return;
   D.cur = null;
-  let o = weightedPick(ORDER_TABLE[p.type]);
+  let o = p.tutOrder || weightedPick(ORDER_TABLE[p.type]);
   if (S.bloodLeft > 0 && o !== 'none' && Math.random() < 0.22 && S.t > 20) { o = 'blood'; S.bloodLeft--; }
   p.order = o;
-  p.med = o === 'shot' ? pick(['shotA', 'shotB']) : o === 'iv' ? pick(['ivA', 'ivB']) : o === 'blood' ? 'blood' : null;
+  p.med = p.tutMed || (o === 'shot' ? pick(['shotA', 'shotB']) : o === 'iv' ? pick(['ivA', 'ivB']) : o === 'blood' ? 'blood' : null);
   if (o === 'none') { toPay(p); return; }
   refill(p);
   setState(p, 'order');
@@ -1701,6 +1702,7 @@ function updatePatients(dt) {
       continue;
     }
     if (p.busy || S.D.cur === p.id || p.path.length) continue;
+    if (S.tut) { p.barEl.style.width = '100%'; continue; }
     let m = { wait: tv, examq: 0.45 * tv, order: 1, tobed: 0.6, bed: 0, beddone: 1.6, pay: 1 }[p.state] ?? 1;
     if (p.type === 'emergency') m = 1;
     const treated = !!p.order; // 진료를 받았으면 수납 전엔 절대 안 감
@@ -1880,7 +1882,7 @@ function updateLunch() {
     for (const m of mates) if (m.state === 'lunch') m.state = 'work';
   }
 }
-function gameMinute() { return S.t <= DAY_SECONDS ? START_MIN + S.t * MIN_PER_SEC : END_MIN + (S.t - DAY_SECONDS); }
+function gameMinute() { const t = S.clock ?? S.t; return t <= DAY_SECONDS ? START_MIN + t * MIN_PER_SEC : END_MIN + (t - DAY_SECONDS); }
 function fmtTime(m) { m = Math.floor(m); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
 // 팀장 지시 · 원장 호출을 도크의 요청 칩으로
 const reqEl = $('#requests');
@@ -2015,6 +2017,12 @@ let lastTs = performance.now();
 function frameLogic(dt) {
   if (!S || S.paused || S.ended || S.modal) return;
   S.t += dt;
+  if (S.tut) { // 튜토리얼: 시간 정지 · 이벤트 없음
+    updateDoctor(dt); updatePatients(dt); updateBeds(dt);
+    for (const a of allActors()) updateActor(a, dt);
+    updateHud(); return;
+  }
+  S.clock += dt;
   updateSpawns(); updateLunch(); updateDoctor(dt); updatePatients(dt); updateBeds(dt); updateBody(dt);
   updatePhone(dt); updateErrand(dt); updateDoctorEvents(); updateBoss(dt);
   for (const m of mates) mateThink(m);
@@ -2031,6 +2039,7 @@ function frame(ts) {
   }
   animateBlood(dt);
   if (S && S.modal) updateBubbles();
+  updateCoach();
   if (CS.active) csFrame(dt, ts / 1000);
   else renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -2331,11 +2340,17 @@ function pause(on) {
   $('#screen-pause').classList.toggle('hidden', !on);
 }
 function refreshStartButton() { $('#btn-start').textContent = save.day > 1 ? `DAY ${save.day} 출근하기` : '출근하기'; }
-$('#btn-start').addEventListener('click', () => {
-  $('#screen-start').classList.add('hidden');
+function goToWork() {
+  $('#screen-start').classList.add('hidden'); $('#screen-tutask').classList.add('hidden');
   briefDoc = { ...pickDoctor(), _day: save.day };
   playStory(briefDoc, openBrief);
+}
+$('#btn-start').addEventListener('click', () => {
+  if (!save.tutDone && save.day === 1) { $('#screen-start').classList.add('hidden'); $('#screen-tutask').classList.remove('hidden'); return; }
+  goToWork();
 });
+$('#btn-tut-yes').addEventListener('click', () => startTutorial());
+$('#btn-tut-no').addEventListener('click', () => { save.tutDone = true; persist(); goToWork(); });
 $('#btn-reset').addEventListener('click', () => {
   if (!confirm('저장된 진행 상황(돈, 집, 승진, 날짜)을 모두 지울까요?')) return;
   save = defaultSave(); persist(); refreshStartButton(); updateChocoBtn();
@@ -2360,7 +2375,7 @@ function setHelpTab(tab) {
 }
 $('#help-tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) setHelpTab(b.dataset.tab); });
 $('#btn-help').addEventListener('click', () => openHelp());
-$('#btn-howto').addEventListener('click', () => openHelp());
+$('#btn-howto').addEventListener('click', () => startTutorial());
 $('#btn-help2').addEventListener('click', () => { $('#screen-pause').classList.add('hidden'); helpPaused = false; openHelp(); });
 $('#btn-help-close').addEventListener('click', () => {
   $('#screen-help').classList.add('hidden');
@@ -2845,10 +2860,98 @@ function csFrame(dt, t) {
   CS.renderer.render(CS.scene, CS.camera);
 }
 
+// ================= 인터랙티브 튜토리얼 =================
+const TUT = { on: false, i: -1, steps: [], A: null, B: null };
+const tA = () => TUT.A && S.patients.get(TUT.A.id);
+const tB = () => TUT.B && S.patients.get(TUT.B.id);
+const hasTask = (kind, pid) => (player.cur && player.cur.a.kind === kind && (pid === undefined || player.cur.a.pid === pid)) || player.queue.some((t) => t.kind === kind && (pid === undefined || t.pid === pid));
+function tutSteps() {
+  return [
+    { text: '<b>햇살내과의원</b>에 온 걸 환영해요!<br>실제 화면에서 하나씩 따라 해 볼게요.', next: true },
+    { enter: () => { TUT.A = spawnPatient('grandma', { name: '김순자' }); TUT.A.tutOrder = 'shot'; TUT.A.tutMed = 'shotA'; },
+      text: '환자가 들어와 <b>번호표</b>를 뽑고 앉아요.<br>머리 위 <b>번호</b>를 탭해서 <b>접수</b>하세요.', target: () => tA() && tA().ov,
+      wait: () => tA() && (hasTask('register', TUT.A.id) || !['arrive', 'wait'].includes(tA().state)) },
+    { watch: true, text: '간호사가 데스크로 뛰어가 접수해요.<br>탭한 일은 아래 <b>할 일</b> 줄에 순서대로 쌓여요.', target: () => $('#queue'),
+      wait: () => tA() && tA().state === 'examq' && !tA().busy },
+    { watch: true, text: '접수한 순서대로 <b>원장님 진료</b>를 받아요.<br>잠깐 기다려 볼까요?', target: () => tA() && tA().ov, wait: () => tA() && tA().state === 'order' && !tA().path.length },
+    { text: '진료 끝! 머리 위 <b>파란 주사</b> = <b>진통제</b> 처방이에요.<br><b>색깔이 곧 처방</b>이에요.', target: () => tA() && tA().ov, next: true },
+    { text: '<b>약품장</b>을 탭해서 약을 챙기러 가요.', target: () => cabBtn, wait: () => sheetKind === 'cab' },
+    { text: '처방과 같은 <b>진통제(파랑)</b>를 고르세요.', target: () => $('#sheet [data-med="shotA"]'), wait: () => hasTask('prep') || player.hands.includes('shotA') },
+    { watch: true, enter: () => closeSheet('cab'), text: '챙긴 약은 <b>처치 트레이</b>에 담겨요.<br>손은 두 개뿐이라 꼭 필요한 것만!', target: () => $('#tray-slots'), wait: () => player.hands.includes('shotA') },
+    { text: '이제 <b>주사실</b>에 앉은 환자를 탭하세요.', target: () => tA() && tA().ov, wait: () => sheetKind === 'pick' || (tA() && tA().state === 'pay') },
+    { text: '<b>투약 확인!</b> 처방과 같은 색 약을 고르세요.<br>망설이면 첫 번째 약이 자동으로 쓰여요.', target: () => $('#sheet'), wait: () => tA() && tA().state === 'pay' },
+    { text: '주사 완료! 처치가 끝난 환자는 다시 <b>접수·수납실</b>에 앉아요.<br>탭해서 <b>수납</b>하세요.', target: () => tA() && tA().ov, wait: () => !tA() },
+    { enter: () => { TUT.B = spawnPatient('grandpa', { name: '박영수', state: 'order', order: 'heat' }); },
+      text: '이번엔 <b>핫팩</b> 처방 환자예요.<br>준비물 없이 탭하면 <b>침대로 안내</b>하고 세팅해요.', target: () => tB() && tB().ov, wait: () => tB() && ['bed', 'beddone'].includes(tB().state) },
+    { text: '핫팩이 끝나면 침대가 <b>빨갛게 깜빡</b>여요.<br>그때 탭해서 <b>정리</b>하세요.', target: () => tB() && tB().ov, wait: () => tB() && (tB().state === 'pay' || hasTask('unbed', TUT.B.id)) },
+    { text: '정리한 환자도 <b>수납</b>까지 해야 끝!<br>환자를 탭하세요.', target: () => tB() && tB().ov, wait: () => !tB() },
+    { text: '처치할 때마다 <b>기록</b>이 쌓여요.<br>왼쪽 <b>기록</b> 버튼으로 정리하세요. 안 하면 퇴근 후 무급 야근!', target: () => chartBtn, wait: () => S.charts === 0 },
+    { enter: () => { S.directive = { kind: 'chore', label: '약품장 재고 정리 좀 해놔요', left: 999, max: 999 }; say(lead, '김 선생, 약품장 재고 정리 좀 해놔요.', 'lead', 3); },
+      text: '팀장님·원장님 <b>지시</b>는 이 줄에 떠요.<br>탭하면 <b>할 일</b>로 내려가요.', target: () => $('#req-row'), wait: () => hasTask('chore') || !S.directive },
+    { text: '내 몸 상태예요. <b>식사·화장실·체력·멘탈</b>이<br>바닥나면 느려지고 실수가 늘어요.', target: () => $('.vitals'), next: true },
+    { text: '오른쪽 <b>화장실·간식</b>으로 회복하세요.<br>단, 팀장님 근처에서 쉬면 혼나요!', target: () => $('#rail-right'), next: true },
+    { text: '두 손가락으로 <b>확대·이동</b>, <b>더블탭</b>으로도 확대돼요.<br>환자가 작을 땐 확대해서 탭하세요.', target: () => $('.zoom-ctl'), next: true },
+    { text: '준비 끝! 이제 진짜 <b>첫 출근</b>을 해 볼까요?<br>모르는 건 언제든 상단 <b>?</b> 버튼에서 볼 수 있어요.', next: true, final: true },
+  ];
+}
+function startTutorial() {
+  $('#screen-start').classList.add('hidden'); $('#screen-tutask').classList.add('hidden'); $('#screen-help').classList.add('hidden');
+  newDay({ ...DOCTORS[0], quiz: false, _day: 0 });
+  S.tut = true;
+  for (const m of mates) m.state = 'tut';
+  el.toasts.innerHTML = '';
+  TUT.on = true; TUT.i = -1; TUT.steps = tutSteps();
+  $('#coach').classList.remove('hidden');
+  tutNext();
+}
+function tutNext() {
+  TUT.i++;
+  const st = TUT.steps[TUT.i];
+  if (!st) { endTutorial(false); return; }
+  if (st.enter) st.enter();
+  $('#coach-step').textContent = `${TUT.i + 1} / ${TUT.steps.length}`;
+  $('#coach-text').innerHTML = st.text;
+  const nb = $('#coach-next');
+  nb.classList.toggle('hidden', !st.next);
+  nb.textContent = st.final ? '출근하기' : '다음';
+}
+function endTutorial(goWork) {
+  TUT.on = false;
+  $('#coach').classList.add('hidden');
+  closeSheet();
+  if (S) { S.ended = true; clearDay(); }
+  S = null;
+  save.tutDone = true; persist();
+  if (goWork) goToWork(); else { refreshStartButton(); $('#screen-start').classList.remove('hidden'); }
+}
+$('#coach-next').addEventListener('click', () => { const st = TUT.steps[TUT.i]; if (st && st.final) endTutorial(true); else tutNext(); });
+$('#coach-skip').addEventListener('click', () => endTutorial(false));
+function updateCoach() {
+  if (!TUT.on || !S) return;
+  const st = TUT.steps[TUT.i];
+  if (!st) return;
+  if (st.wait && !S.paused && st.wait()) { tutNext(); return; }
+  const target = st.target && st.target();
+  const hole = $('.coach-hole'), fin = $('.coach-finger'), card = $('.coach-card');
+  const r = target && target.isConnected ? target.getBoundingClientRect() : null;
+  if (r && r.width > 0) {
+    const pad = 6;
+    Object.assign(hole.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
+    hole.classList.remove('none');
+    fin.classList.toggle('hidden', !!(st.next || st.watch));
+    fin.style.left = r.left + r.width / 2 + 'px'; fin.style.top = Math.min(innerHeight - 60, r.bottom + 8) + 'px';
+    const lower = r.top + r.height / 2 > innerHeight * 0.5;
+    card.classList.toggle('top', lower); card.classList.toggle('bottom', !lower);
+  } else {
+    hole.classList.add('none'); fin.classList.add('hidden');
+    card.classList.remove('top'); card.classList.add('bottom');
+  }
+}
+
 // 테스트용 훅
 window.__game = {
   get S() { return S; }, player, get mates() { return mates; }, get lead() { return lead; }, enqueue, onPatientTap, freeBed: (k) => S && freeBed(k), phoneBtn, MEDS,
-  get pickFn() { return pickFn; }, blood, openCabinet, quiz, CS, answerQuiz,
+  get pickFn() { return pickFn; }, blood, openCabinet, quiz, CS, answerQuiz, TUT, tA, tB,
   focus(x, z, d = 6, y = 0.8) {
     if (x === undefined) { focusing = false; fitCamera(); ovEl.style.display = ''; return; }
     focusing = true;
