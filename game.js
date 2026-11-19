@@ -445,26 +445,34 @@ for (const r of Object.values(ROOMS)) {
   const node = ov(`<i style="--dot:${r.dot}"></i>${r.name}` + (r.key === 'desk' ? '<em id="wait-count"></em>' : ''), 'rlabel');
   staticOv.push({ node, x: r.side < 0 ? r.x0 + 1.05 : r.x1 - 1.05, y: 0.05, z: r.z1 - 0.12 });
 }
-function stationBtn(html, p, y, onTap, cls = '') {
-  const node = ov(html, 'sbtn ' + cls);
+function stationBtn(html, p, y, onTap, cls = '', rail = null) {
+  let node;
+  if (rail) {
+    // 화면 가장자리 레일: 3D 캐릭터를 가리지 않게
+    node = document.createElement('button');
+    node.className = 'sbtn ' + cls; node.innerHTML = html;
+    $(rail).appendChild(node);
+  } else {
+    node = ov(html, 'sbtn ' + cls);
+    staticOv.push({ node, x: p.x, y, z: p.z });
+  }
   node.addEventListener('click', (e) => { e.stopPropagation(); onTap(); });
-  staticOv.push({ node, x: p.x, y, z: p.z });
   return node;
 }
 const playing = () => S && !S.paused && !S.ended && !S.modal;
 const guard = (fn) => () => { if (playing()) fn(); };
 stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot');
-stationBtn(`<span class="pin">${icon('toilet')}</span><small>화장실</small>`, R('pantry', 1.5, -2.1), 1.3, guard(() => enqueue(player, { kind: 'toilet' })), 'toilet');
-const snackBtn = stationBtn(`<span class="pin">${icon('onigiri')}</span><small>간식</small>`, R('pantry', -0.8, -2.4), 1.3, guard(() => enqueue(player, { kind: 'snack' })), 'snack');
+stationBtn(`<span class="pin">${icon('toilet')}</span><small>화장실</small>`, R('pantry', 1.5, -2.1), 1.3, guard(() => enqueue(player, { kind: 'toilet' })), 'toilet', '#rail-right');
+const snackBtn = stationBtn(`<span class="pin">${icon('onigiri')}</span><small>간식</small>`, R('pantry', -0.8, -2.4), 1.3, guard(() => enqueue(player, { kind: 'snack' })), 'snack', '#rail-right');
 const chartBtn = stationBtn(`<span class="pin">${icon('clipboard')}<span class="chart-count"></span></span><small>기록</small>`, MON_POS, 1.55, guard(() => {
   if (!S.charts) { toast('📋 밀린 기록이 없어요'); return; }
   enqueue(player, { kind: 'chart' });
-}), 'chart');
+}), 'chart', '#rail-left');
 const chartCount = chartBtn.querySelector('.chart-count');
 const phoneBtn = stationBtn(`<span class="pin">${icon('phone')}</span><small>전화</small>`, PHONE_POS, 1.5, guard(() => {
   if (!S.phone.ringing) { toast('전화가 울리고 있지 않아요'); return; }
   enqueue(player, { kind: 'phone' });
-}), 'phone');
+}), 'phone', '#rail-left');
 const errandOv = ov('<span class="e-ic"></span><span class="e-tx"></span><i></i>', 'errand');
 errandOv.style.display = 'none';
 errandOv.addEventListener('click', (e) => { e.stopPropagation(); if (playing() && S.errand) enqueue(player, { kind: 'errand' }); });
@@ -475,7 +483,7 @@ function layoutStaticOverlays() { for (const o of staticOv) placeOv(o.node, o.x,
 
 // 말풍선
 const bubbles = [];
-function say(target, text, cls = '', dur = 2.8) {
+function say(target, text, cls = '', dur = 2.2) {
   for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].target === target) { bubbles[i].node.remove(); bubbles.splice(i, 1); }
   const node = ov('', 'bubble ' + cls);
   node.textContent = text;
@@ -648,7 +656,7 @@ function toast(msg, kind = '') {
   t.innerHTML = `<span class="t-ic">${icon(ic)}</span><span></span>`;
   t.lastChild.textContent = text;
   el.toasts.appendChild(t);
-  while (el.toasts.children.length > 3) el.toasts.firstChild.remove();
+  while (el.toasts.children.length > 1) el.toasts.firstChild.remove();
   setTimeout(() => t.remove(), 2700);
 }
 let hintTimer = null;
@@ -1359,7 +1367,7 @@ function issueDirective() {
   choreOv.querySelector('.e-tx').textContent = `팀장님 지시: ${d.label}`;
   choreOv.style.display = '';
   say(lead, `김 선생, ${d.label}`, 'lead', 3);
-  hint('directive', '📣 팀장님 지시! 말풍선을 탭하면 바로 할 일에 들어가요. 제때 안 하면 멘탈과 평가가 깎여요.');
+  hint('directive', '📣 팀장님 지시! 아래 할 일 줄의 남색 칩을 탭하면 처리하러 가요. 제때 안 하면 멘탈과 평가가 깎여요.');
 }
 function checkDirective(t) {
   const d = S.directive;
@@ -1454,7 +1462,7 @@ function updateErrand(dt) {
       errandOv.style.display = '';
       say(doctor, `김 선생~ ${e.label}`, 'doc');
       setTimeout(() => { if (S && lead && !S.ended) say(lead, pick(LEAD_SWEET), 'sweet', 2.6); }, 1300);
-      hint('errand', '🧑‍⚕️ 원장님 호출! 말풍선이나 원장님을 탭하면 처리하러 가요. 무시하면 멘탈이 크게 깎여요. (간호사 66.2%가 의사 업무를 요구받은 경험)');
+      hint('errand', '🧑‍⚕️ 원장님 호출! 아래 할 일 줄의 노란 칩이나 원장님을 탭하면 처리하러 가요. 무시하면 멘탈이 크게 깎여요. (간호사 66.2%가 의사 업무를 요구받은 경험)');
     }
     return;
   }
@@ -1856,6 +1864,26 @@ function updateLunch() {
 }
 function gameMinute() { return S.t <= DAY_SECONDS ? START_MIN + S.t * MIN_PER_SEC : END_MIN + (S.t - DAY_SECONDS); }
 function fmtTime(m) { m = Math.floor(m); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+// 팀장 지시 · 원장 호출을 도크의 요청 칩으로
+const reqEl = $('#requests');
+function renderRequests() {
+  const items = [];
+  const has = (k, pid) => (player.cur && player.cur.a.kind === k && player.cur.a.pid === pid) || player.queue.some((t) => t.kind === k && t.pid === pid);
+  if (S.directive) items.push({ id: 'd', cls: '', ic: 'megaphone', label: `팀장 · ${S.directive.label}`, r: S.directive.left / S.directive.max, q: has(S.directive.kind, S.directive.pid) });
+  if (S.errand) items.push({ id: 'e', cls: 'doc', ic: 'stetho', label: `원장 · ${S.errand.label}`, r: S.errand.left / S.errand.max, q: has('errand') || S.errand.answering });
+  const key = items.map((i) => i.id + i.label + i.q).join('|');
+  if (reqEl.dataset.k !== key) {
+    reqEl.dataset.k = key;
+    reqEl.innerHTML = items.map((i) => `<button class="req ${i.cls} ${i.q ? 'queued' : ''}" data-req="${i.id}">${icon(i.ic)}<span>${i.label}</span><i></i></button>`).join('');
+  }
+  items.forEach((i) => { const b = reqEl.querySelector(`[data-req="${i.id}"] i`); if (b) b.style.transform = `scaleX(${Math.max(0, i.r)})`; });
+}
+reqEl.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-req]');
+  if (!b || !playing()) return;
+  if (b.dataset.req === 'd' && S.directive) enqueue(player, { kind: S.directive.kind, pid: S.directive.pid });
+  if (b.dataset.req === 'e' && S.errand) enqueue(player, { kind: 'errand' });
+});
 function setNum(node, v) {
   if (node.textContent === v) return;
   node.textContent = v;
@@ -1877,6 +1905,7 @@ function updateHud() {
   const show = S.combo >= 2 && S.t - S.lastDone <= 3.5;
   const key = show ? String(S.combo) : '0';
   if (el.combo.dataset.k !== key) { el.combo.dataset.k = key; el.combo.innerHTML = show ? `<span class="cb">${icon('fire')}콤보 ×${S.combo}</span>` : ''; }
+  renderRequests();
   const lbl = isLunch() ? '점심' : '간식';
   const sm = snackBtn.querySelector('small');
   if (sm.textContent !== lbl) sm.textContent = lbl;

@@ -66,14 +66,16 @@
         <div class="vital stamina" id="g-stamina"><span class="v-ic" data-icon="battery"></span><div class="v-body"><div class="v-top"><span>체력</span><em>100</em></div><b><i></i></b></div></div>
         <div class="vital mental" id="g-mental"><span class="v-ic" data-icon="heart"></span><div class="v-body"><div class="v-top"><span>멘탈</span><em>100</em></div><b><i></i></b></div></div>
       </div>
+      <div id="toasts"></div>
+      <div id="hint" class="hidden"></div>
     </header>
 
     <main id="map">
       <div id="stage"></div>
       <div id="ov"></div>
       <div id="combo"></div>
-      <div id="toasts"></div>
-      <div id="hint" class="hidden"></div>
+      <div class="rail left" id="rail-left"><span class="rail-cap">접수·수납</span></div>
+      <div class="rail right" id="rail-right"><span class="rail-cap">탕비실</span></div>
       <div class="zoom-ctl">
         <button id="zoom-in" aria-label="확대"><span data-icon="plus"></span></button>
         <button id="zoom-out" aria-label="축소"><span data-icon="minus"></span></button>
@@ -92,6 +94,7 @@
       <div class="dock">
         <div class="dock-row">
           <span class="dock-label">할 일</span>
+          <div id="requests"></div>
           <div id="queue"></div>
         </div>
         <div class="dock-row">

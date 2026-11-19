@@ -581,3 +581,37 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 .quiz-exp b { color: #7ff0dc; }
 .mate-row.locked .focus-seg { opacity: .45; pointer-events: none; }
 .lock-tag { font-size: 10.5px; font-weight: 800; color: #2d3e66; background: #e3e8f4; padding: 3px 8px; border-radius: 999px; margin-left: auto; white-space: nowrap; }
+
+/* ===== v4: 안내 문구는 HUD 게이지 위에, 시설 버튼은 좌우 레일로 ===== */
+#hud { position: relative; }
+#toasts { position: absolute; top: auto; bottom: 0; left: 10px; right: 10px; width: auto; transform: none; z-index: 40; display: block; pointer-events: none; }
+#toasts .toast { width: 100%; max-width: none; min-height: 44px; border-radius: 14px; padding: 6px 12px 6px 7px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(21,48,43,.18); animation: toastIn .18s ease-out, fadeOut .35s ease-in 2.1s forwards; }
+#toasts .toast > span:last-child { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#hint { position: absolute; left: 10px; right: 10px; top: 8px; bottom: auto; z-index: 41; }
+.zoom-ctl { top: 50%; bottom: auto; transform: translateY(-50%); }
+.rail { position: absolute; bottom: 10px; z-index: 22; display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 8px 6px 9px; border-radius: 18px;
+  background: rgba(255,255,255,.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 14px rgba(21,48,43,.12); }
+.rail.left { left: 8px; } .rail.right { right: 8px; }
+.rail-cap { font-size: 9.5px; font-weight: 800; color: var(--ink-3); letter-spacing: -.02em; white-space: nowrap; }
+.rail .sbtn { position: static; transform: none !important; gap: 4px; }
+.rail .sbtn .pin::after { display: none; }
+.rail .sbtn .pin { width: 42px; height: 42px; font-size: 21px; }
+.rail { gap: 6px; padding: 6px 4px 7px; border-radius: 14px; }
+.rail .sbtn .pin { width: 34px; height: 34px; font-size: 17px; }
+.rail .sbtn small { font-size: 9px; padding: 1px 5px; }
+.rail-cap { font-size: 8.5px; }
+.rail.left { left: 4px; } .rail.right { right: 4px; }
+.zoom-ctl { top: 34%; right: 6px; }
+.zoom-ctl button { width: 32px; height: 30px; font-size: 14px; }
+
+/* 지시·호출 요청 칩 (지도 위가 아니라 도크에) */
+.errand { display: none !important; }
+#requests { display: flex; gap: 5px; flex: none; }
+#requests:empty { display: none; }
+.req { position: relative; overflow: hidden; display: flex; align-items: center; gap: 4px; flex: none; max-width: 150px; font-size: 11.5px; font-weight: 800; padding: 5px 9px 7px 6px; border-radius: 12px; color: #fff; background: #2d3e66; box-shadow: 0 3px 8px rgba(21,48,43,.2); animation: bump .3s ease-out; }
+.req.doc { background: #b07d00; }
+.req .ic { font-size: 14px; flex: none; }
+.req span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #ffd166; transform-origin: left; }
+.req.queued { opacity: .55; }
+.bubble { max-width: 150px; font-size: 10.5px; padding: 4px 8px; border-radius: 10px; opacity: .95; }
