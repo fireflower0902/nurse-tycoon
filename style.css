@@ -652,3 +652,12 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 .coach-text { font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--ink); }
 .coach-text b { color: var(--mint-d); }
 #coach-next { margin-top: 10px; padding: 12px; font-size: 15px; }
+
+/* 나 · 팀장 화살표 */
+.big-arrow { pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 6; filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); }
+.big-arrow.me { color: #ffd23f; }
+.big-arrow.lead { color: #5b7bd6; transform-origin: bottom; }
+.big-arrow.lead svg { width: 30px; height: 35px; }
+.ar-tag { font-size: 12px; font-weight: 900; padding: 2px 9px; border-radius: 999px; margin-bottom: 2px; color: #15302b; background: #ffd23f; border: 2px solid #15302b; }
+.big-arrow.lead .ar-tag { background: #2d3e66; color: #fff; border-color: #fff; font-size: 11px; }
+.nametag.hide { display: none; }

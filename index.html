@@ -36,7 +36,7 @@
   <link rel="apple-touch-icon" href="icon-180.png" />
   <title>간호사 타이쿤: 오늘도 칼퇴 실패 · 3D 모바일 타이쿤 게임</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="style.css?v=10" />
+  <link rel="stylesheet" href="style.css?v=15" />
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
   </script>
@@ -123,10 +123,10 @@
       <p class="sub">오늘도 칼퇴 실패</p>
       <ul class="howto">
         <li><span data-icon="tap"></span><div><b>환자를 탭해서 일 시키기</b><small>간호사가 뛰어가서 처리 · 최대 5개 예약</small></div></li>
-        <li><span data-icon="syringe"></span><div><b>처방 색깔대로 약 챙기기</b><small>머리 위 색과 다른 약을 쓰면 투약 사고!</small></div></li>
+        <li><span data-icon="syringe"></span><div><b>주사·수액은 약품장에서 챙기기</b><small>손은 두 개뿐 · 채혈 키트는 주사실에 비치</small></div></li>
         <li><span data-icon="megaphone"></span><div><b>팀장님 지시 · 원장님 질문</b><small>지시는 제때, 의료지식 퀴즈는 정확하게</small></div></li>
         <li><span data-icon="heart"></span><div><b>내 몸과 멘탈도 챙기기</b><small>팀장님 눈치 보며 화장실·간식·초코바</small></div></li>
-        <li><span data-icon="pinch"></span><div><b>두 손가락으로 확대·이동</b><small>더블탭으로도 확대돼요</small></div></li>
+        <li><span data-icon="pinch"></span><div><b>노란 화살표가 나!</b><small>남색 화살표는 팀장님 · 두 손가락으로 확대</small></div></li>
       </ul>
       <button id="btn-start" class="primary">출근하기</button>
       <button id="btn-howto" class="secondary"><span data-icon="tap"></span>튜토리얼로 배우기 (2분)</button>
@@ -192,28 +192,28 @@
       <div class="tab-body" data-tab="basic">
         <div class="hrow"><span data-icon="tap"></span><div><b>탭해서 일 시키기</b><p>환자·침대·시설 버튼을 탭하면 간호사가 뛰어가서 처리해요. 최대 5개까지 순서대로 예약되고, '할 일' 칩을 탭하면 취소돼요.</p></div></div>
         <div class="hrow"><span data-icon="pinch"></span><div><b>확대 · 이동</b><p>두 손가락으로 벌리면 확대, 드래그하면 이동, 더블탭하면 그 자리를 확대해요. 오른쪽 아래 +/− 버튼도 있어요.</p></div></div>
-        <div class="hrow"><span data-icon="tray"></span><div><b>처치 트레이</b><p>약품장에서 약을 골라 담아요. 기본 2칸, 가디건을 사면 3칸. 칸을 탭하면 내려놓아요.</p></div></div>
-        <div class="hrow"><span data-icon="syringe"></span><div><b>투약 확인</b><p>주사·수액을 놓을 때 트레이에서 약을 골라요. <b>환자 머리 위 색</b>과 같은 약을 골라야 해요. 몇 초 안에 안 고르면 첫 번째 약이 자동으로 쓰여요. 바쁠수록 사고가 나요.</p></div></div>
+        <div class="hrow"><span data-icon="tray"></span><div><b>처치 트레이</b><p>약품장에서 <b>주사·수액</b>을 담아요. 기본 2칸, 가디건을 사면 3칸. 칸을 탭하면 내려놓아요.</p></div></div>
+        <div class="hrow"><span data-icon="tap"></span><div><b>나와 팀장님 찾기</b><p>머리 위 <b>노란 화살표</b>가 나, <b>남색 화살표</b>가 한 팀장님이에요.</p></div></div>
         <div class="hrow"><span data-icon="choco"></span><div><b>초코바</b><p>그 자리에서 바로 식사 +40. 퇴근 후 상점에서 살 수 있어요. 팀장님 근처에서 먹으면 한소리 들어요.</p></div></div>
         <div class="hrow"><span data-icon="users"></span><div><b>동료 요청</b><p>후배 동료에게 '접수·수납 / 처치 / 기록 / 알아서' 중 어떤 일 위주로 할지 요청해요. 상사인 팀장님께는 지시할 수 없어요. 채혈·원장님 호출·팀장님 지시는 내 몫이에요.</p></div></div>
-        <div class="hrow"><span data-icon="clock"></span><div><b>하루 일과</b><p>09:00~18:00 (실제 3분). 13~14시 점심시간, 17:30 접수 마감. 18:00 이후 남은 환자와 기록은 전부 야근이에요.</p></div></div>
+        <div class="hrow"><span data-icon="clock"></span><div><b>하루 일과</b><p>08:30 아침 조회(그날의 이벤트) → 09:00~18:00 근무(실제 3분). 13~14시 점심시간과 17:30 이후엔 새 환자가 없어요. 남은 환자와 기록은 전부 야근!</p></div></div>
       </div>
       <div class="tab-body hidden" data-tab="flow">
         <ol class="flow">
           <li><span data-icon="ticket"></span><div><b>번호표 · 대기</b><p>환자가 들어와 번호표를 뽑고 접수·수납실에 앉아요</p></div></li>
           <li><span data-icon="doc"></span><div><b>접수</b><p>환자를 탭 → 간호사가 데스크에서 번호를 부르고 접수</p></div></li>
           <li><span data-icon="stetho"></span><div><b>진료</b><p>접수 순서대로 한 명씩 진료실에 들어가요</p></div></li>
-          <li><span data-icon="syringe"></span><div><b>주사실</b><p>주사·수액·핫팩·채혈 처방 환자는 주사실에서 기다려요. 약품장은 주사실 옆문으로 바로 이어져요</p></div></li>
+          <li><span data-icon="syringe"></span><div><b>주사실</b><p>주사·수액·핫팩·채혈 처방 환자가 기다려요. 주사·수액은 약품장(옆문)에서 챙기고, 채혈 키트는 주사실에 늘 있어요</p></div></li>
           <li><span data-icon="bed"></span><div><b>수액·치료실</b><p>수액·핫팩 환자를 안내한 뒤 침대에서 세팅. 침대가 깜빡이면 정리</p></div></li>
           <li><span data-icon="card"></span><div><b>수납</b><p>다시 접수·수납실에 앉은 환자를 탭해서 수납</p></div></li>
           <li><span data-icon="clipboard"></span><div><b>기록</b><p>처치할 때마다 기록이 쌓여요. 안 하면 퇴근 후 무급 야근</p></div></li>
         </ol>
-        <div class="tipbox"><span data-icon="drop"></span><p><b>채혈</b>은 미니게임! 바늘이 초록 구간에 들어왔을 때 멈추세요. 혈관이 잘 안 보이는 환자는 구간이 좁아요.</p></div>
+        <div class="tipbox"><span data-icon="drop"></span><p><b>채혈</b>은 준비물 없이 바로! 바늘이 초록 구간에 들어왔을 때 멈추세요. 혈관이 잘 안 보이는 환자는 구간이 좁아요.</p></div>
       </div>
       <div class="tab-body hidden" data-tab="people">
         <div class="hrow"><span data-icon="stetho"></span><div><b>최원장 · 사업가 원장</b><p>환자가 곧 매출. 워라밸은 관심 없어요. "점심 30분만", "마감 연장"을 외치고, 가끔 <b>의료지식 질문</b>으로 기습해요. 학회 가는 날엔 성향이 다른 대진 의사가 와요.</p></div></div>
-        <div class="hrow"><span data-icon="megaphone"></span><div><b>한 팀장 · 간호팀장</b><p>같이 일하는 상사예요. 환자도 직접 보지만 중간중간 <b>지시</b>를 내려요(말풍선을 탭하면 처리). 원장님 앞에선 싹싹, 나에겐 모질어요. 근처에서 쉬거나 기록이 밀리면 태움.</p></div></div>
-        <div class="hrow"><span data-icon="users"></span><div><b>후배 동료</b><p>DAY 3에 박 선생, DAY 5에 이 선생이 입사해요. 후배들에게는 업무 위주를 지정할 수 있어요.</p></div></div>
+        <div class="hrow"><span data-icon="megaphone"></span><div><b>한 팀장 · 간호팀장</b><p>상사예요. <b>환자 실무는 하지 않고</b>, 진료실에서 원장님을 보조하며 잘 보이려 해요. 가끔 돌아다니며 <b>지시</b>를 내려요(지시 줄의 칩을 탭). 원장님 앞에선 싹싹, 나에겐 모질어요. 근처에서 쉬거나 기록이 밀리면 태움.</p></div></div>
+        <div class="hrow"><span data-icon="users"></span><div><b>후배 박 선생</b><p>DAY 3에 입사해요. 그 전까진 환자는 혼자 다 봐야 해요. 박 선생에겐 업무 위주를 지정할 수 있어요.</p></div></div>
         <div class="hrow"><span data-icon="book"></span><div><b>의료지식 퀴즈</b><p>원장님 기습 질문, 팀장님 아침 퀴즈. 10초 안에 4지선다. 맞히면 평가↑, 틀리면 멘탈↓.</p></div></div>
         <div class="hrow"><span data-icon="medal"></span><div><b>승진</b><p>신규 → 간호사 → 책임 → 주임 → 수간호사. 처리한 환자·평판·팀장 평가·퀴즈로 점수가 쌓이고, 승진하면 시급이 올라요.</p></div></div>
         <div class="hrow"><span data-icon="home"></span><div><b>집</b><p>고시원 → 원룸 → 투룸 → 아파트. 좋은 집일수록 자고 나서 더 회복되고 체력·멘탈 최대치도 늘어요.</p></div></div>
@@ -221,10 +221,8 @@
       <div class="tab-body hidden" data-tab="icons">
         <div class="icon-grid">
           <div><span class="badge-ic ticket"><b>12</b></span>번호표 · 접수 대기</div>
-          <div><span class="badge-ic" style="--c:#3f7df0" data-icon="syringe"></span>주사 · 진통제(파랑)</div>
-          <div><span class="badge-ic" style="--c:#e84393" data-icon="syringe"></span>주사 · 항생제(분홍)</div>
-          <div><span class="badge-ic" style="--c:#e0a100" data-icon="iv"></span>수액 · 영양(노랑)</div>
-          <div><span class="badge-ic" style="--c:#35b6e8" data-icon="iv"></span>수액 · 식염수(하늘)</div>
+          <div><span class="badge-ic" style="--c:#3f7df0" data-icon="syringe"></span>주사 처방</div>
+          <div><span class="badge-ic" style="--c:#35b6e8" data-icon="iv"></span>수액 처방</div>
           <div><span class="badge-ic heat" data-icon="flame"></span>핫팩</div>
           <div><span class="badge-ic blood" data-icon="drop"></span>채혈</div>
           <div><span class="badge-ic exam" data-icon="stetho"></span>진료 중</div>
@@ -233,7 +231,7 @@
           <div><span class="badge-ic doc" data-icon="doc"></span>실비 서류 요청</div>
           <div><span class="badge-ic rude" data-icon="angry"></span>진상 환자</div>
           <div><span class="badge-ic alert" data-icon="heartPulse"></span>흉통! 즉시 119</div>
-          <div><span class="badge-ic mate" data-icon="users"></span>동료·팀장이 처리 중</div>
+          <div><span class="badge-ic mate" data-icon="users"></span>후배가 처리 중</div>
         </div>
         <p class="note">환자 머리 위 막대는 <b>인내심</b>이에요. 빨개지면 곧 화내며 떠나요.</p>
       </div>
@@ -330,6 +328,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js?v=10"></script>
+  <script type="module" src="game.js?v=15"></script>
 </body>
 </html>

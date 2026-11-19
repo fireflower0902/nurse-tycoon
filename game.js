@@ -3,8 +3,8 @@
  * Three.js (CDN importmap), 빌드 없음. 모바일 세로 화면 기준.
  * ========================================================= */
 import * as THREE from 'three';
-import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=10';
-import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=10';
+import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=15';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=15';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -48,11 +48,8 @@ const ORDER = {
 };
 // 약 (색깔로 구분)
 const MEDS = {
-  shotA: { type: 'shot', name: '진통제', color: '#3f7df0' },
-  shotB: { type: 'shot', name: '항생제', color: '#e84393' },
-  ivA:   { type: 'iv', name: '영양수액', color: '#e0a100' },
-  ivB:   { type: 'iv', name: '식염수', color: '#35b6e8' },
-  blood: { type: 'blood', name: '채혈 키트', color: '#e53935' },
+  shot: { type: 'shot', name: '주사', color: '#3f7df0' },
+  iv:   { type: 'iv', name: '수액', color: '#35b6e8' },
 };
 const ORDER_TABLE = {
   grandma: [['heat', 4], ['iv', 2], ['shot', 2], ['none', 2]],
@@ -65,7 +62,7 @@ const DOCTORS = [
   { id: 'biz', name: '최원장', trait: '사업가 원장', desc: '환자가 곧 매출. 워라밸은 관심 없고, 가끔 의료지식 질문으로 기습해요.', owner: true, examMul: 0.85, errandMul: 1.4, quiz: true, biz: true, look: { hair: '#2b2b2b', hairLen: 0.4, square: true, tie: '#c9a227', mustache: false } },
   { id: 'kind', name: '대진 오선생', trait: '천사 대진의', desc: '원장님 학회 날. 호출이 적고 커피도 사 줘요.', good: true, examMul: 1.1, errandMul: 0.5, kind: true, look: { hair: '#5a4636', hairLen: 0.5, smile: true, glasses: false, tie: '#2bb5a0' } },
   { id: 'slow', name: '대진 서선생', trait: '꼼꼼파', desc: '원장님 학회 날. 진료를 길게 봐서 대기 환자가 쌓여요.', examMul: 1.6, errandMul: 0.7, look: { hair: '#a9a9a9', sides: true, mustache: true } },
-  { id: 'fast', name: '대진 윤선생', trait: '속전속결', desc: '원장님 학회 날. 진료가 빨라 처치가 몰리고, 처방도 자주 바꿔요.', examMul: 0.6, errandMul: 1, changeMul: 2.2, look: { hair: '#222222', hairLen: 0.5, square: true, tie: '#d64545' } },
+  { id: 'fast', name: '대진 윤선생', trait: '속전속결', desc: '원장님 학회 날. 진료가 빨라 주사실에 처치가 몰려요.', examMul: 0.6, errandMul: 1, changeMul: 2.2, look: { hair: '#222222', hairLen: 0.5, square: true, tie: '#d64545' } },
   { id: 'creep', name: '대진 정선생', trait: '선 넘는 농담', desc: '원장님 학회 날. 불쾌한 말을 던져요. 선을 그을지, 넘길지…', examMul: 1, errandMul: 1.2, harass: true, look: { hair: '#3a3a3a', hairLen: 0.45, glasses: false, tie: '#7a1f3d' } },
 ];
 const RANKS = [
@@ -99,7 +96,7 @@ const LEAD_DEF = { name: '한 팀장' };
 // 후배 동료: DAY 3 박 선생, DAY 5 이 선생 입사
 const MATE_DEFS = [
   { name: '박 선생', from: 3, look: { tired: false, hair: '#6b3f2a', top: '#9ec9f0', pants: '#86b9e8', style: 'pony' } },
-  { name: '이 선생', from: 5, look: { tired: false, hair: '#1d1d1d', top: '#f4b6c2', pants: '#eaa0b0', style: 'short' } },
+  { name: '이 선생', from: 999, look: { tired: false, hair: '#1d1d1d', top: '#f4b6c2', pants: '#eaa0b0', style: 'short' } },
 ];
 const juniorsFor = (day) => MATE_DEFS.filter((m) => day >= m.from);
 const FOCUS = { auto: '알아서', desk: '접수·수납', treat: '처치', chart: '기록' };
@@ -295,12 +292,14 @@ const SP = {
   examNext: R('exam', 2.1, 0.9, { rot: -Math.PI / 2, pose: 'stand' }),
   errand: R('exam', -0.25, -1.85, { rot: -Math.PI / 2, via: [R('exam', -0.25, -0.6)] }),
   prep: R('cabinet', 0.2, 0.15, { rot: Math.PI }),
+  assist: R('exam', 0.4, -1.3, { rot: -Math.PI / 2 }),
   toilet: R('pantry', 1.5, -1.35, { rot: Math.PI }),
   snack: R('pantry', -0.8, -1.45, { rot: Math.PI }),
   lunchSeats: [R('pantry', -1.7, -1.5, { rot: Math.PI, pose: 'sit' }), R('pantry', 0.1, -1.5, { rot: Math.PI, pose: 'sit' })],
   exit: { x: 0, z: 12.6 },
 };
 
+const leadPatrol = () => [R('desk', 1.7, -0.4, { rot: Math.PI }), R('desk', 1.9, 2.0, { rot: -Math.PI / 2 }), R('inject', 1.6, -0.1, { rot: Math.PI / 2 }), R('ward', 1.7, 0, { rot: Math.PI / 2 }), R('cabinet', 1.3, 1.0, { rot: Math.PI })];
 // 진료실
 {
   const d = R('exam', -1.4, -1.0);
@@ -461,7 +460,7 @@ function stationBtn(html, p, y, onTap, cls = '', rail = null) {
 }
 const playing = () => S && !S.paused && !S.ended && !S.modal;
 const guard = (fn) => () => { if (playing()) fn(); };
-const cabBtn = stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot');
+const cabBtn = stationBtn(`<span class="pin">${icon('syringe')}</span><small>약품장</small>`, R('cabinet', 0.2, -0.9), 1.45, guard(() => openCabinet()), 'shot', '#rail-right');
 stationBtn(`<span class="pin">${icon('toilet')}</span><small>화장실</small>`, R('pantry', 1.5, -2.1), 1.3, guard(() => enqueue(player, { kind: 'toilet' })), 'toilet', '#rail-right');
 const snackBtn = stationBtn(`<span class="pin">${icon('onigiri')}</span><small>간식</small>`, R('pantry', -0.8, -2.4), 1.3, guard(() => enqueue(player, { kind: 'snack' })), 'snack', '#rail-right');
 const chartBtn = stationBtn(`<span class="pin">${icon('clipboard')}<span class="chart-count"></span></span><small>기록</small>`, MON_POS, 1.55, guard(() => {
@@ -725,7 +724,7 @@ function goTo(m, spot) { m.path = route(m.pos, m.spot, spot); m.spot = spot; }
 function makeActor(kind, name, ch, idx) {
   const a = {
     kind, name, ch, idx, pos: { x: DESK_SLOTS[0].spot.x, z: DESK_SLOTS[0].spot.z }, spot: null, path: [], face: 0, hands: [], queue: [], cur: null,
-    focus: 'auto', state: 'work', ovNode: ov(`<span class="nametag ${kind === 'player' ? 'me' : kind === 'lead' ? 'lead' : ''}">${name}</span><div class="pbar"><i></i></div>`, 'actor-ov'),
+    focus: 'auto', state: 'work', ovNode: ov(`<span class="nametag ${kind === 'player' ? 'me hide' : kind === 'lead' ? 'lead hide' : ''}">${name}</span><div class="pbar"><i></i></div>`, 'actor-ov'),
   };
   a.barEl = a.ovNode.querySelector('.pbar'); a.barFill = a.barEl.firstChild;
   a.bubblePos = () => a.pos;
@@ -734,6 +733,10 @@ function makeActor(kind, name, ch, idx) {
   return a;
 }
 const player = makeActor('player', '나', makeNurse(), -1);
+const ARROW_SVG = '<svg viewBox="0 0 40 46" width="40" height="46"><path d="M12 2h16v20h10L20 44 2 22h10z" fill="currentColor" stroke="#15302b" stroke-width="3" stroke-linejoin="round"/></svg>';
+const meArrow = ov(`<span class="ar-tag">나</span>${ARROW_SVG}`, 'big-arrow me');
+const leadArrow = ov(`<span class="ar-tag">팀장</span>${ARROW_SVG}`, 'big-arrow lead');
+meArrow.style.display = leadArrow.style.display = 'none';
 let mates = [];
 let doctor = null;
 let lead = null;
@@ -796,7 +799,7 @@ function newDay(doc) {
     errand: null, errandAt: rand(50, 75) / doc.errandMul, directive: null, directiveAt: rand(22, 35), bossCd: {},
     quizAt: doc.quiz && Math.random() < 0.35 ? rand(70, 160) : -1, quizCount: 0, quizPending: -1,
     lunchEnd: LUNCH_E, intakeEnd: END_MIN - 30, extendDone: false,
-    changeAt: day >= 2 ? rand(45, 120) / (doc.changeMul || 1) : -1,
+    changeAt: -1,
     emergencyAt: day >= 2 ? rand(35, 150) : -1,
     harassAt: doc.harass ? rand(30, 55) : -1, harassCount: 0,
     coffeeAt: doc.kind ? rand(60, 140) : -1,
@@ -808,15 +811,21 @@ function newDay(doc) {
   };
   for (const b of preview.beds) b.ov.remove();
   preview.beds = [];
+  const ep = save.todayEp && EPISODES.find((e) => e.id === save.todayEp);
+  S.mods = ep ? { ...ep.mod } : {};
+  if (S.mods.errandMul) { S.doc = { ...S.doc, errandMul: S.doc.errandMul * S.mods.errandMul }; S.errandAt = rand(50, 75) / S.doc.errandMul; }
+  if (S.mods.bloodBonus) S.bloodLeft += S.mods.bloodBonus;
+  if (S.mods.mentalBonus) S.body.mental = Math.min(mx, S.body.mental + S.mods.mentalBonus);
   buildDayCast();
   buildBeds(S);
   allActors().forEach((a, i) => {
     a.hands = []; a.queue = []; a.cur = null; a.path = []; a.state = 'work'; a.slot = null;
-    const sp = i < 2 ? DESK_SLOTS[i].spot : SP.prep;
+    const sp = a === lead ? SP.assist : i === 0 ? DESK_SLOTS[0].spot : SP.prep;
     a.pos = { x: sp.x, z: sp.z }; a.spot = sp; a.face = 0;
     a.ch.g.position.set(sp.x, 0, sp.z); a.ch.g.visible = true;
   });
   DESK_SLOTS.forEach((s) => (s.owner = null));
+  if (S.mods.noLead) { lead.state = 'off'; lead.ch.g.visible = false; S.directiveAt = 1e9; }
   updateCharts(); renderHands(); renderQueue();
   el.day.textContent = day;
   phoneBtn.classList.remove('ringing');
@@ -963,7 +972,7 @@ function taskIcon(t) {
   const p = t.pid ? S.patients.get(t.pid) : null;
   const orderIcon = p && p.order ? ORDER[p.order].icon : 'syringe';
   return { register: 'doc', call119: 'ambulance', treat: orderIcon, setup: orderIcon, unbed: 'bell', pay: 'card',
-    phone: 'phone', prep: t.med ? ORDER[MEDS[t.med].type].icon : 'syringe', toilet: 'toilet', snack: 'onigiri', chart: 'clipboard', errand: 'stetho', chore: 'megaphone' }[t.kind] || 'info';
+    phone: 'phone', prep: t.med ? ORDER[MEDS[t.med].type].icon : 'syringe', toilet: 'toilet', snack: 'onigiri', chart: 'clipboard', errand: 'stetho', chore: 'megaphone', assist: 'stetho' }[t.kind] || 'info';
 }
 function taskLabel(t) {
   const p = t.pid ? S.patients.get(t.pid) : null;
@@ -982,6 +991,8 @@ function taskLabel(t) {
     case 'chart': return '기록';
     case 'errand': return '원장님 호출';
     case 'chore': return '재고 정리';
+    case 'assist': return '진료 보조';
+    case 'wander': return '순찰';
   }
   return t.kind;
 }
@@ -1048,23 +1059,10 @@ function bumpCombo(pos) {
   S.stats.maxCombo = Math.max(S.stats.maxCombo, S.combo);
   if (S.combo >= 3) { floatText(pos, `콤보 ×${S.combo}`); S.stats.evalAdj += 1; }
 }
-function incident(p, actor, why) {
-  S.stats.incidents++;
-  save.rating -= 0.4;
-  if (actor === player) {
-    S.body.mental -= 15;
-    toast(`⚠️ 투약 사고! ${p.name}님께 ${why} (멘탈 −15 · 경위서)`, 'warn');
-    leadScold('incident', 4);
-  } else toast(`⚠️ ${actor.name}님 투약 사고… 팀 전체가 경위서`, 'warn');
-  S.reportDue = true;
-  floatText(p.pos, '투약 사고!', true);
-  vibrate([300, 100, 300]);
-}
-function useMed(actor, p, chosen) {
-  const i = actor.hands.indexOf(chosen);
+function useMed(actor, type) {
+  const i = actor.hands.findIndex((h) => MEDS[h].type === type);
   if (i >= 0) actor.hands.splice(i, 1);
   if (actor === player) renderHands();
-  if (chosen !== p.med) incident(p, actor, `${MEDS[p.med].name} 대신 ${MEDS[chosen].name}을(를) 썼어요`);
 }
 
 const ACT = {
@@ -1141,18 +1139,15 @@ const ACT = {
       const p = P(t);
       if (!p || p.state !== 'order') return 'skip';
       const o = p.order;
-      if ((o === 'shot' || o === 'iv') && !a.hands.some((h) => MEDS[h].type === o)) return `${ORDER[o].label}이(가) 트레이에 없어요! 약품장에서 ${MEDS[p.med].name}을(를) 챙기세요`;
-      if (o === 'blood' && !a.hands.includes('blood')) return '🩸 채혈 키트가 없어요! 약품장에서 챙기세요';
+      if ((o === 'shot' || o === 'iv') && !a.hands.some((h) => MEDS[h].type === o)) return `${ORDER[o].label}가 트레이에 없어요! 약품장에서 챙겨 오세요`;
       if ((o === 'iv' || o === 'heat') && !freeBed(o)) return o === 'iv' ? '💧 수액 침대가 꽉 찼어요' : '♨️ 핫팩 침대가 꽉 찼어요';
       return null;
     },
-    pick: (t) => (P(t).order === 'shot' ? 'shot' : null),
     mini: (t) => P(t).order === 'blood',
     apply: (t, a, c) => {
       const p = P(t), o = p.order;
-      if (o === 'shot') { useMed(a, p, c.med); addChart(); toPay(p); }
+      if (o === 'shot') { useMed(a, 'shot'); addChart(); toPay(p); }
       else if (o === 'blood') {
-        a.hands.splice(a.hands.indexOf('blood'), 1); if (a === player) renderHands();
         S.stats.blood++; addChart(); toPay(p);
         toast(`🩸 ${p.name}님 채혈 성공!`, 'good');
       } else {
@@ -1171,14 +1166,13 @@ const ACT = {
     check: (t, a) => {
       const p = P(t);
       if (!p || p.state !== 'tobed') return 'skip';
-      if (p.order === 'iv' && !a.hands.some((h) => MEDS[h].type === 'iv')) return `💧 수액이 트레이에 없어요! ${MEDS[p.med].name}을(를) 챙겨 오세요`;
+      if (p.order === 'iv' && !a.hands.some((h) => MEDS[h].type === 'iv')) return '💧 수액이 트레이에 없어요! 약품장에서 챙겨 오세요';
       return null;
     },
     ready: (t) => P(t) && P(t).path.length === 0,
-    pick: (t) => (P(t).order === 'iv' ? 'iv' : null),
     apply: (t, a, c) => {
       const p = P(t), bed = p.bed;
-      if (p.order === 'iv') useMed(a, p, c.med);
+      if (p.order === 'iv') useMed(a, 'iv');
       bed.dur = bed.t = S.tut ? 4 : p.order === 'iv' ? 22 : 15;
       bed.ov.style.visibility = 'visible'; bed.ov.firstChild.style.width = '0%';
       refill(p, 0.4); setState(p, 'bed'); addChart();
@@ -1205,6 +1199,12 @@ const ACT = {
       toast('🧑‍⚕️ 원장님 부탁 처리 완료… 내 일은 그대로 밀렸다');
       if (S.doc.quiz && S.quizCount < 2 && Math.random() < 0.5) S.quizPending = S.t + 0.5; // 진료실에 들른 김에
     },
+  },
+  assist: { where: () => SP.assist, dur: () => 0.2, check: () => null, apply: (t, a) => { if (Math.random() < 0.35) say(a, pick(LEAD_SWEET), 'sweet', 2.4); } },
+  wander: {
+    where: (t) => t.spot, dur: () => 4.0, check: () => null,
+    start: (t, a) => { if (!S.directive && !isLunch() && !S.closed && Math.random() < 0.55) issueDirective(); else say(a, pick(['다들 잘하고 있어요?', '여기 정리 좀 하지.', '흠…']), 'lead', 2); },
+    apply: () => {},
   },
   chore: {
     where: () => SP.prep, dur: () => 2.6,
@@ -1282,7 +1282,7 @@ function updateActor(a, dt) {
       if (a === player) { c.phase = 'pick'; openPick(c, P(c.a), pickType); return; }
       c.med = a.hands.includes(p.med) ? p.med : a.hands.find((h) => MEDS[h].type === pickType);
     }
-    c.phase = 'work'; c.t = 0; c.dur = def.dur(c.a, a) * workMult(a);
+    c.phase = 'work'; c.t = 0; c.dur = def.dur(c.a, a) * workMult(a) * (def.desk && S.mods.deskFast ? S.mods.deskFast : 1);
   }
   if (c.phase === 'work') {
     c.t += dt;
@@ -1312,8 +1312,28 @@ function finishPick(c, med) {
 }
 
 // ================= 동료 AI =================
+function leadNeeded() {
+  let load = 0, urgent = false;
+  for (const p of S.patients.values()) {
+    if (!['wait', 'pay', 'order', 'beddone', 'tobed'].includes(p.state) || p.type === 'emergency') continue;
+    if (claimedBy('register', p.id) === player || claimedBy('treat', p.id) === player || claimedBy('pay', p.id) === player) continue;
+    load++;
+    if (p.patience / p.max < 0.3) urgent = true;
+  }
+  if (S.leadHelping) { if (load <= 2 && !urgent) S.leadHelping = false; }
+  else if (load >= 5 || urgent) { S.leadHelping = true; say(lead, '바쁘네, 나도 볼게요.', 'lead', 2); }
+  return S.leadHelping || [...S.patients.values()].some((p) => p.type === 'emergency' && p.state === 'wait');
+}
 function mateThink(m) {
   if (m.cur || m.queue.length || m.state !== 'work') return;
+  if (m.isLead) { // 팀장은 실무를 하지 않음: 진료실에서 원장님 보조 + 가끔 순찰하며 지시
+    if (S.leadWanderAt === undefined) S.leadWanderAt = S.t + rand(25, 40);
+    if (S.t >= S.leadWanderAt && !isLunch()) {
+      S.leadWanderAt = S.t + rand(35, 55);
+      m.queue.push({ kind: 'wander', spot: pick(leadPatrol()) });
+    } else if (dist(m.pos, SP.assist) > 0.3) m.queue.push({ kind: 'assist' });
+    return;
+  }
   const f = m.focus;
   const w = (kind) => {
     if (f === 'desk') return ['register', 'pay', 'phone'].includes(kind) ? 1.8 : 0.7;
@@ -1388,7 +1408,7 @@ function updateBoss(dt) {
   if (!lead) return;
   if (!isLunch() && !S.closed) {
     if (player.cur && ACT[player.cur.a.kind].rest && player.cur.phase === 'work' && leadNear(7)) leadScold('rest', 8);
-    if (S.charts >= 6) leadScold('chart', 6);
+    if (S.charts >= (S.mods.chartStrict ? 3 : 6)) leadScold('chart', S.mods.chartStrict ? 9 : 6);
   }
   const d = S.directive;
   if (!d) {
@@ -1448,14 +1468,14 @@ function updateDoctor(dt) {
   let o = p.tutOrder || weightedPick(ORDER_TABLE[p.type]);
   if (S.bloodLeft > 0 && o !== 'none' && Math.random() < 0.22 && S.t > 20) { o = 'blood'; S.bloodLeft--; }
   p.order = o;
-  p.med = p.tutMed || (o === 'shot' ? pick(['shotA', 'shotB']) : o === 'iv' ? pick(['ivA', 'ivB']) : o === 'blood' ? 'blood' : null);
+  p.med = o === 'shot' || o === 'iv' ? o : null;
   if (o === 'none') { toPay(p); return; }
   refill(p);
   setState(p, 'order');
   goTo(p, takeSeat(p, 'inject'));
-  if (o === 'shot' || o === 'iv') hint('o_med', `💉 ${p.name}님 ${MEDS[p.med].name} 처방! 머리 위 색깔과 같은 약을 약품장에서 챙긴 뒤 주사실의 환자를 탭하세요.`);
+  if (o === 'shot' || o === 'iv') hint('o_med', `💉 ${p.name}님 ${MEDS[p.med].name} 처방! 약품장에서 ${MEDS[p.med].name}를 챙긴 뒤 주사실의 환자를 탭하세요.`);
   if (o === 'heat') hint('o_heat', '♨️ 핫팩 처방! 주사실 환자를 탭해 수액·치료실 침대로 안내한 뒤 세팅해요.');
-  if (o === 'blood') hint('o_blood', '🩸 채혈 처방! 약품장에서 채혈 키트를 챙기고 환자를 탭하면 미니게임이 시작돼요.');
+  if (o === 'blood') hint('o_blood', '🩸 채혈 처방! 채혈 키트는 주사실에 늘 있어요. 환자를 바로 탭하면 미니게임이 시작돼요.');
 }
 function updateErrand(dt) {
   if (S.closed) { if (S.errand && !S.errand.answering) { S.errand = null; errandOv.style.display = 'none'; } return; }
@@ -1573,7 +1593,7 @@ function openMates() {
   el.sheet.innerHTML = `<h4>${icon('users')}동료에게 요청하기 <button class="close" data-close>${icon('x')}</button></h4>
     <p class="sub2">후배에게 어떤 일 위주로 맡길까요? 팀장님은 상사라 지정할 수 없어요.</p>
     ${mates.map((m, i) => m.isLead
-      ? `<div class="mate-row locked"><span class="mate-av">${icon('megaphone')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : '대기 중'}</small></span><span class="lock-tag">상사 · 지정 불가</span></div>`
+      ? `<div class="mate-row locked"><span class="mate-av">${icon('megaphone')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : dist(m.pos, SP.assist) < 0.5 ? '진료실 보조 중' : '대기 중'}</small></span><span class="lock-tag">상사 · 지정 불가</span></div>`
       : `<div class="mate-row"><span class="mate-av">${icon('users')}</span><span class="mate-name">${m.name}<small>${m.state === 'lunch' ? '점심 중' : m.cur ? taskLabel(m.cur.a) : '대기 중'}</small></span>
       <div class="focus-seg" data-mate="${i}">${Object.entries(FOCUS).map(([k, v]) => `<button data-focus="${k}" class="${m.focus === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>`).join('')}
     ${mates.length < 2 ? '<p class="sub2">아직 후배가 없어요. DAY 3에 박 선생이 입사해요.</p>' : ''}`;
@@ -1764,7 +1784,7 @@ function updateBody(dt) {
   const b = S.body, mx = maxStat();
   b.hunger = Math.max(0, b.hunger - dt * (100 / 150));
   b.bladder = Math.max(0, b.bladder - dt * (100 / 125));
-  b.stamina = Math.max(0, b.stamina - dt * 0.18 * (save.items.tumbler ? 0.8 : 1));
+  b.stamina = Math.max(0, b.stamina - dt * 0.18 * (save.items.tumbler ? 0.8 : 1) * (S.mods.staminaMul || 1));
   b.mental = clamp(b.mental, 0, mx);
   if (b.hunger <= 0) S.stats.skippedMeal = true;
   if (b.bladder <= 5) S.stats.heldPee = true;
@@ -1819,15 +1839,15 @@ function updateSpawns() {
   }
   const rush = gm >= 12 * 60 && gm < LUNCH_S - 10;
   if (S.t >= S.spawnAt) {
-    const base = save.day === 1 ? 9.0 : save.day === 2 ? 7.6 : Math.max(3.6, 7.4 - (save.day - 2) * 0.5);
-    S.spawnAt = S.t + base * (rush ? 0.6 : 1) * rand(0.7, 1.3);
+    const base = save.day === 1 ? 12.5 : save.day === 2 ? 10.5 : save.day === 3 ? 8.8 : Math.max(3.6, 8.2 - (save.day - 3) * 0.5);
+    S.spawnAt = S.t + base * (S.mods.spawnMul || 1) * (rush ? 0.6 : 1) * rand(0.7, 1.3);
     if (lobbyWaiting() >= 9) { save.rating -= 0.05; toast('🚪 대기 공간이 꽉 차서 환자가 그냥 돌아갔어요', 'warn'); }
     else {
       const table = rush ? [['worker', 6], ['normal', 2]]
         : gm < 10.5 * 60 ? [['grandma', 4], ['grandpa', 3], ['normal', 2], ['kid', 1]]
         : [['normal', 3], ['grandma', 2], ['grandpa', 2], ['kid', 2], ['worker', 1]];
       const ty = weightedPick(table);
-      spawnPatient(ty, { rude: S.t > 25 && ty !== 'kid' && Math.random() < (save.day === 1 ? 0.03 : 0.08 + save.day * 0.015) });
+      spawnPatient(ty, { rude: S.t > 25 && ty !== 'kid' && Math.random() < (save.day === 1 ? 0.03 : 0.08 + save.day * 0.015) * (S.mods.rudeMul || 1) });
     }
   }
   if (S.emergencyAt > 0 && S.t >= S.emergencyAt) {
@@ -1865,6 +1885,7 @@ function updateLunch() {
     toast(left ? `🍱 13시 점심시간! …인데 아직 환자 ${left}명이 남았다` : '🍱 13시 점심시간! 탕비실에서 밥 먹을 수 있어요', left ? 'warn' : 'good');
     if (S.doc.biz) setTimeout(() => { say(doctor, '밥은 빨리빨리 먹고 와요~', 'doc', 2.4); toast(`🧑‍⚕️ ${S.doc.name}: “점심 먹고 와서 기록 정리 다 해 놔요~”`, 'warn'); }, 900);
     hint('lunch', '🍱 점심시간에는 새 환자가 없고, 탕비실에서 팀장님 눈치 없이 밥을 먹을 수 있어요.');
+    if (S.mods.lunchTreat) setTimeout(() => { S.body.hunger = maxStat(); S.body.mental = Math.min(maxStat(), S.body.mental + 5); S.stats.ateLunch = true; toast('🍱 원장님이 쏜 초밥 도착! (식사 가득 · 멘탈 +5)', 'good'); }, 1500);
   }
   if (isLunch()) {
     mates.forEach((m, i) => {
@@ -1964,6 +1985,10 @@ function animateActor(a, dt, t) {
 }
 function animateWorld(dt, t) {
   easeCamera(dt);
+  // 내 위치 · 팀장 위치 화살표 (항상 표시)
+  const bob = Math.abs(Math.sin(t * 3.2)) * 0.22;
+  if (S && player.ch.g.visible) { meArrow.style.display = ''; placeOv(meArrow, player.pos.x, 2.5 + bob, player.pos.z); } else meArrow.style.display = 'none';
+  if (S && lead && lead.ch.g.visible) { leadArrow.style.display = ''; placeOv(leadArrow, lead.pos.x, 2.5 + bob * 0.6, lead.pos.z); } else leadArrow.style.display = 'none';
   if (S) {
     for (const a of allActors()) {
       if (a !== player && a.state === 'lunch' && a.path.length) stepAlong(a, dt, NURSE_SPEED * 0.7);
@@ -2052,7 +2077,7 @@ function endDay() {
   closeSheet();
   const st = S.stats;
   const overtime = Math.max(0, Math.round(gameMinute() - END_MIN));
-  const chartOT = S.charts * 6;
+  const chartOT = S.charts * (S.mods.chartStrict ? 12 : 6);
   const early = 30;
   const restMin = Math.round(st.restSec * MIN_PER_SEC);
   save.rating = clamp(save.rating, 0, 5);
@@ -2074,7 +2099,7 @@ function endDay() {
   let promoted = null;
   if (save.rank < RANKS.length - 1 && save.evalPts >= RANKS[save.rank + 1].need) { save.rank++; promoted = RANKS[save.rank]; }
   save.stamina = S.body.stamina; save.mental = S.body.mental;
-  dayResult = { overtime, chartOT, early, restMin, wage, bonus, invests, pts, promoted, report: !!S.reportDue, st };
+  dayResult = { overtime, chartOT, early, restMin, wage, bonus, invests, pts, promoted, report: false, st, dinner: !!S.mods.dinner };
   persist();
 
   $('#res-eyebrow').textContent = `DAY ${save.day} 퇴근 기록 · ${S.doc.name}(${S.doc.trait})`;
@@ -2085,7 +2110,6 @@ function endDay() {
     stat('화나서 간 환자', st.angry + '명', st.angry > 0),
     stat('의원 매출', won(st.revenue)),
     stat('평판 변화', (dRating >= 0 ? '+' : '') + dRating.toFixed(2), dRating < 0),
-    stat('투약 사고', st.incidents + '건', st.incidents > 0),
     stat('채혈', `${st.blood}건 · 실패 ${st.bloodFail}`, st.bloodFail > 2),
     stat('원장님 심부름', `${st.errands}건 · 놓침 ${st.errandsMissed}`, st.errandsMissed > 0),
     stat('팀장님 지시', `${st.ord}건 · 놓침 ${st.ordMiss}`, st.ordMiss > 0),
@@ -2108,6 +2132,7 @@ function endDay() {
   if (st.e119) badges.push(['응급 판별 성공', true]);
   if (st.angry === 0 && st.served >= 10) badges.push(['민원 0건', true]);
   if (st.harass) badges.push(['불쾌한 말을 들은 날', false]);
+  if (S.mods.dinner) badges.push(['퇴근 후 회식… (회복량 감소)', false]);
   $('#res-badges').innerHTML = badges.map(([tx, g]) => `<span class="badge ${g ? 'good' : ''}">${tx}</span>`).join('');
   const next = RANKS[save.rank + 1];
   let extra = '';
@@ -2188,6 +2213,7 @@ function sleepAndNext() {
   if (eveChoice === 'diary') { recM += 8; recS += 5; }
   if (eveChoice === 'report') { recS *= 0.6; recM = recM * 0.6 - 10; }
   if (r.st.rude >= 3) recM -= 8;
+  if (r.dinner) { recS -= 15; recM -= 10; }
   save.stamina = clamp(Math.round(save.stamina + recS - otPen), 30, mx);
   save.mental = clamp(Math.round(save.mental + recM), 20, mx);
   save.lastDoc = S.doc.id;
@@ -2195,7 +2221,7 @@ function sleepAndNext() {
   const eve = eveningStory(dayResult, eveChoice);
   save.day++;
   persist();
-  briefDoc = { ...pickDoctor(), _day: save.day };
+  chooseToday();
   playScene(eve, () => playStory(briefDoc, openBrief));
 }
 
@@ -2205,11 +2231,11 @@ const DOC_PLAN = {
   biz: '최원장님은 회전율이 최우선이에요. 마감 연장도 각오하세요. 진료실 심부름을 가면 질문이 날아올 수 있으니 기본기를 떠올려 두세요.',
   kind: '여유로운 날이에요. 기록을 그때그때 정리하고, 점심도 꼭 챙겨 드세요.',
   slow: '진료가 길어 접수·수납실이 붐벼요. 후배는 <b>접수·수납 위주</b>로, 대기 환자 인내심을 지켜 주세요.',
-  fast: '진료가 빨라 주사실이 금방 차요. 후배를 <b>처치 위주</b>로 돌리고, 처방 변경이 잦으니 약은 1~2개씩만 챙기세요.',
+  fast: '진료가 빨라 주사실이 금방 차요. 후배를 <b>처치 위주</b>로 돌리고, 주사·수액을 미리 챙겨 두세요.',
   creep: '불쾌한 말에 대비해 멘탈을 아껴 두세요. 초코바·간식으로 멘탈과 체력을 미리 채워 두는 게 좋아요.',
 };
 function estPatients() {
-  const base = save.day === 1 ? 9.0 : save.day === 2 ? 7.6 : Math.max(3.6, 7.4 - (save.day - 2) * 0.5);
+  const base = save.day === 1 ? 12.5 : save.day === 2 ? 10.5 : save.day === 3 ? 8.8 : Math.max(3.6, 8.2 - (save.day - 3) * 0.5);
   return Math.round(147 / base + (16.7 / base) * (1 / 0.6 - 1));
 }
 function minimapSVG(doc) {
@@ -2219,9 +2245,9 @@ function minimapSVG(doc) {
   const nIv = Math.min(4, save.clinic.ivBeds), nHeat = Math.min(4, save.clinic.heatBeds);
   const info = {
     exam: [`${doc.name} · ${doc.trait}`, '진료 의자 1'],
-    cabinet: ['약 5종', '주사실과 내부 문'],
+    cabinet: ['주사 · 수액', '주사실과 내부 문'],
     ward: [`침대 · 수액 ${nIv} · 핫팩 ${nHeat}`],
-    inject: ['처치 대기 의자 6', '주사 · 채혈'],
+    inject: ['처치 대기 의자 6', '주사 · 채혈(키트 비치)'],
     desk: ['창구 2 · 번호표', `대기 의자 10${save.clinic.tv ? ' · TV' : ''}`],
     pantry: ['화장실 · 간식', '점심 13~14시'],
   };
@@ -2259,7 +2285,7 @@ function renderBriefMap(doc) {
   ];
   if (doc.quiz) evs.push(['book', '원장님 기습 질문', 1]);
   if (doc.biz) evs.push(['clock', '마감 연장 가능', 1]);
-  if (save.day >= 2) evs.push(['heartPulse', '응급 환자 가능', 1], ['stetho', '처방 변경', 1]);
+  if (save.day >= 2) evs.push(['heartPulse', '응급 환자 가능', 1]);
   if (doc.harass) evs.push(['warning', '불쾌한 발언', 1]);
   if (doc.kind) evs.push(['cup', '커피 이벤트']);
   if (doc.errandMul > 2) evs.push(['stetho', '원장님 호출 잦음', 1]);
@@ -2312,9 +2338,10 @@ function openBrief() {
   const bar = (label, v, c) => `<div>${label} ${v}/${mx}<b><i style="width:${v / mx * 100}%;background:${c}"></i></b></div>`;
   $('#brief-body').innerHTML = `<div class="brief-grid">
     <div class="brief-item"><span class="bi">${icon('stetho')}</span><div><b>${briefDoc.name}<span class="tag ${briefDoc.good ? 'good' : ''}">${briefDoc.trait}</span></b><p>${briefDoc.desc}</p></div></div>
-    <div class="brief-item"><span class="bi">${icon('megaphone')}</span><div><b>한 팀장과 함께 근무</b><p>같이 환자를 보면서 중간중간 지시를 내려요. 원장님 앞에선 싹싹, 나에겐 모질어요.</p></div></div>
-    <div class="brief-item"><span class="bi">${icon('users')}</span><div><b>후배 ${juniors.length}명</b><p>${juniors.length ? juniors.map((m) => m.name).join(', ') : '아직 후배가 없어요. 팀장님과 둘이서 버텨야 해요.'}${juniors.some((m) => m.from === save.day) ? ' · <b>오늘 입사!</b>' : ''}</p></div></div>
+    <div class="brief-item"><span class="bi">${icon('megaphone')}</span><div><b>한 팀장 (상사)</b><p>환자 실무는 안 해요. 진료실에서 원장님을 보조하며 잘 보이려 하고, 가끔 돌아다니며 지시를 내려요.</p></div></div>
+    <div class="brief-item"><span class="bi">${icon('users')}</span><div><b>후배 ${juniors.length}명</b><p>${juniors.length ? juniors.map((m) => m.name).join(', ') : '아직 후배가 없어요. 환자는 혼자 다 봐야 해요!'}${juniors.some((m) => m.from === save.day) ? ' · <b>오늘 입사!</b>' : ''}</p></div></div>
     <div class="brief-item"><span class="bi">${icon('battery')}</span><div><b>컨디션 · ${HOMES[save.home].name}에서 출근</b><div class="bars2">${bar('체력', Math.round(save.stamina), '#1fb39a')}${bar('멘탈', Math.round(save.mental), '#f06292')}</div></div></div>
+    ${(() => { const ep = save.todayEp && EPISODES.find((e) => e.id === save.todayEp); return ep && ep.chip ? `<div class="brief-item"><span class="bi">${icon('sparkle')}</span><div><b>오늘의 이벤트 · ${ep.title}<span class="tag ${ep.warn ? '' : 'good'}">${ep.chip}</span></b><p>아침 조회에서 전달된 소식이 오늘 근무에 영향을 줘요.</p></div></div>` : ''; })()}
     <div class="plan"><h4>${icon('sparkle')}추천 작전</h4><p>${DOC_PLAN[briefDoc.id]}</p></div>
     <div class="brief-mates"><b>${icon('users')}동료 업무 미리 지정</b>
       <div class="mate-row locked"><span class="mate-name">${LEAD_DEF.name}</span><span class="lock-tag">상사 · 지정 불가</span></div>
@@ -2340,9 +2367,14 @@ function pause(on) {
   $('#screen-pause').classList.toggle('hidden', !on);
 }
 function refreshStartButton() { $('#btn-start').textContent = save.day > 1 ? `DAY ${save.day} 출근하기` : '출근하기'; }
+function chooseToday() {
+  briefDoc = { ...pickDoctor(), _day: save.day };
+  save.todayEp = save.day >= 6 && briefDoc.owner ? pickEpisode().id : null;
+  persist();
+}
 function goToWork() {
   $('#screen-start').classList.add('hidden'); $('#screen-tutask').classList.add('hidden');
-  briefDoc = { ...pickDoctor(), _day: save.day };
+  if (!briefDoc || briefDoc._day !== save.day) chooseToday();
   playStory(briefDoc, openBrief);
 }
 $('#btn-start').addEventListener('click', () => {
@@ -2633,6 +2665,52 @@ function eveningStory(r, choice) {
     ],
   };
 }
+const EPISODES = [
+  { id: 'flu', title: '독감 시즌 시작', chip: '환자 많음', warn: 1, mod: { spawnMul: 0.8 }, steps: [
+    { who: 'lead', text: '오늘부터 독감 접종 시작이에요. 환자 엄청 몰릴 거예요.' },
+    { who: 'boss', text: '대박이네! 아, 아니… 다들 힘내자고.' }, { who: 'me', text: '(대박은… 원장님한테만이겠지)' }] },
+  { id: 'rain', title: '장대비 내리는 아침', chip: '환자 적음', mod: { spawnMul: 1.25 }, steps: [
+    { who: 'narr', text: '아침부터 장대비가 쏟아진다.' },
+    { who: 'lead', text: '비 오는 날은 환자가 좀 적어요. 대신 밀린 기록 다 해 놔요.' }, { who: 'me', text: '(쉬라는 말은 끝까지 안 하시네)' }] },
+  { id: 'leadoff', title: '팀장님 연차', chip: '팀장 없음 · 호출↑', mod: { noLead: true, errandMul: 1.6 }, steps: [
+    { who: 'narr', text: '오늘은 한 팀장님 연차!' },
+    { who: 'boss', text: '김 선생이 오늘 팀장 대신이야. 알지? 필요하면 부를게~' }, { who: 'me', text: '(지시하는 사람은 없는데… 호출은 전부 나한테 오겠구나)' }] },
+  { id: 'inspect', title: '보건소 점검 날', chip: '기록 엄격', warn: 1, mod: { chartStrict: true }, steps: [
+    { who: 'lead', text: '오후에 보건소 점검 나와요. 기록 하나라도 밀리면 큰일 나요.' },
+    { who: 'boss', text: '서류 깔끔하게! 우리 병원 이미지 알지?' }, { who: 'me', text: '(기록할 시간을 주셔야…)' }] },
+  { id: 'checkup', title: '건강검진 시즌', chip: '채혈 많음', mod: { bloodBonus: 2 }, steps: [
+    { who: 'boss', text: '검진 패키지 팔아야 해. 오늘 피검사 많이 나올 거야.' },
+    { who: 'lead', text: '김 선생, 채혈 실수하면 바로 민원이에요. 알죠?' }] },
+  { id: 'ricecake', title: '단골 할머니의 떡', chip: '멘탈 +10', mod: { mentalBonus: 10 }, steps: [
+    { who: 'narr', text: '단골 할머니가 아침부터 떡 한 봉지를 들고 오셨다.' },
+    { who: 'lead', text: '어머~ 원장님 먼저 드세요 호호.' }, { who: 'boss', text: '다들 하나씩 먹어~ 할머니 감사합니다!' }, { who: 'me', text: '(따끈한 꿀떡… 이 맛에 일하지)' }] },
+  { id: 'aircon', title: '에어컨 고장', chip: '체력 소모↑', warn: 1, mod: { staminaMul: 1.6 }, steps: [
+    { who: 'narr', text: '에어컨이 고장 났다. 수리 기사님은 오후에나 오신단다.' },
+    { who: 'boss', text: '선풍기 틀고 버텨~ 환자분들껜 미리 말씀드리고.' }, { who: 'me', text: '(스크럽이 벌써 땀에 젖었다…)' }] },
+  { id: 'complaint', title: '민원 예고', chip: '진상 주의', warn: 1, mod: { rudeMul: 2.5 }, steps: [
+    { who: 'lead', text: '어제 그 환자, 오늘 또 온대요. 인터넷에 리뷰 쓴다고 난리예요.' },
+    { who: 'boss', text: '무조건 친절하게! 무조건!' }, { who: 'me', text: '(무조건… 친절하게…)' }] },
+  { id: 'golf', title: '원장님 홀인원', chip: '호출↓ · 점심 제공', mod: { errandMul: 0.4, mentalBonus: 5, lunchTreat: true }, steps: [
+    { who: 'narr', text: '원장님 얼굴이 유난히 밝다.' },
+    { who: 'boss', text: '주말에 홀인원 했어! 오늘 점심은 내가 쏜다!' }, { who: 'lead', text: '어머 원장님 대단하세요~!' }, { who: 'me', text: '(오늘은 좀 평화로울지도…?)' }] },
+  { id: 'bp', title: '새 자동 혈압계', chip: '접수·수납 빠름', mod: { deskFast: 0.75 }, steps: [
+    { who: 'lead', text: '새 자동 혈압계 들어왔어요. 접수가 좀 빨라질 거예요.' },
+    { who: 'boss', text: '비싼 거니까 아껴 써! 그만큼 환자 더 받자고.' }] },
+  { id: 'dinner', title: '회식 예고', chip: '퇴근 후 회식', warn: 1, mod: { dinner: true }, steps: [
+    { who: 'boss', text: '오늘 저녁 회식이다! 다들 빠지지 마~' },
+    { who: 'lead', text: '김 선생은 고기 굽는 거 알죠?' }, { who: 'me', text: '(퇴근하고… 싶다…)' }] },
+  { id: 'quiz', title: '팀장님 아침 퀴즈', chip: '', mod: {}, steps: [
+    { who: 'lead', text: '자, 아침 퀴즈. 이것도 모르면 곤란해요.' },
+    { quiz: 'lead', who: 'lead', ok: '…맞았네요. 오늘도 그렇게 해요.', bad: '하… 기본부터 다시 봐요.' }] },
+];
+function pickEpisode() {
+  save.epUsed = save.epUsed || [];
+  let pool = EPISODES.filter((e) => !save.epUsed.includes(e.id));
+  if (!pool.length) { save.epUsed = []; pool = EPISODES; }
+  const ep = pick(pool);
+  save.epUsed.push(ep.id);
+  return ep;
+}
 function storyFor(doc) {
   const day = save.day;
   const sub = !doc.owner;
@@ -2651,7 +2729,7 @@ function storyFor(doc) {
       { quiz: 'boss', who: 'boss', ok: '흠, 기본은 되네. 합격.', bad: '…그것도 몰라? 뭐, 일하면서 배워. 사람이 급하니까.' },
       { who: 'lead', text: '(정색하며) 내일부터 바로 나올 수 있죠? 8시 반까지 와요. 인계 받아야 하니까.' },
       { who: 'me', text: '네…? 내, 내일부터요?' },
-      { who: 'lead', text: '사람이 없어서 그래요. 시급은 원장님이 최저보다 더 쳐준대요.' },
+      { who: 'lead', text: '사람이 없어서 그래요. 환자는 김 선생이 다 봐야 해요. 시급은 최저보다 더 쳐준대요.' },
       { who: 'boss', text: '그래, 내일 봐요. 아, 점심은… 바쁘면 좀 늦게 먹고. 하하.' },
       { who: 'narr', text: '그렇게 다음 날 아침 8시 30분, 첫 출근이 시작됐다.' },
     ],
@@ -2662,15 +2740,15 @@ function storyFor(doc) {
     title: `DAY ${day} · 원장님 학회 가는 날`, set: 'station', cast: castBase(jCast), subDoc: doc,
     steps: [
       { who: 'narr', text: `오늘 최원장님은 학회. 대진으로 ${doc.name.replace('대진 ', '')}님이 오셨다.` },
-      { who: 'sub', text: doc.kind ? '오늘 하루 잘 부탁해요~ 다들 무리하지 말고요.' : doc.id === 'fast' ? '빨리빨리 봅시다. 처방 바뀌면 바로 따라와요.' : doc.id === 'slow' ? '저는 한 분 한 분 자세히 보는 편이라… 대기가 좀 길어질 거예요.' : '아, 여기 간호사분들 다 젊네? 하하.' },
+      { who: 'sub', text: doc.kind ? '오늘 하루 잘 부탁해요~ 다들 무리하지 말고요.' : doc.id === 'fast' ? '빨리빨리 봅시다. 처치 밀리지 않게 따라와요.' : doc.id === 'slow' ? '저는 한 분 한 분 자세히 보는 편이라… 대기가 좀 길어질 거예요.' : '아, 여기 간호사분들 다 젊네? 하하.' },
       { who: 'lead', text: '선생님~ 필요한 거 있으면 저한테 말씀만 하세요 호호.' },
       { who: 'lead', text: '(돌아서서) 김 선생, 대진 날이라고 느슨해지지 마요.' },
     ],
   };
   if (day === 2) return {
-    title: 'DAY 2 · 아침 조회', set: 'station', cast: castBase(),
+    title: 'DAY 2 · 08:30 아침 조회', set: 'station', cast: castBase(),
     steps: [
-      { who: 'narr', text: '출근 이틀째, 08:30 아침 조회' },
+      { who: 'narr', text: '출근 이틀째, 08:30 아침 조회. 9시 진료 전 30분은… 근무시간이 아니다.' },
       { who: 'lead', text: '어제 기록 봤어요. 신규라도 기록은 칼같이 해요.' },
       { who: 'boss', text: '오늘은 환자 좀 많이 받아 보자고. 점심은 30분이면 충분하지?' },
       { who: 'me', text: '(…어제도 점심 제대로 못 먹었는데)' },
@@ -2684,7 +2762,7 @@ function storyFor(doc) {
     steps: [
       { who: 'lead', text: '오늘부터 같이 일할 박 선생이에요. 인사해요.' },
       { who: 'park', text: '안녕하세요! 박지은입니다. 잘 부탁드립니다!' },
-      { who: 'lead', text: '김 선생이 좀 가르쳐줘요. 나는 바쁘니까.' },
+      { who: 'lead', text: '김 선생이 좀 가르쳐줘요. 나는 원장님 챙기느라 바쁘니까.' },
       { who: 'me', text: '(나도 이제 겨우 3일차인데…)' },
       { who: 'narr', text: '이제 후배에게 업무를 지정할 수 있어요.' },
     ],
@@ -2699,23 +2777,17 @@ function storyFor(doc) {
     ],
   };
   if (day === 5) return {
-    title: 'DAY 5 · 또 한 명', set: 'station', cast: castBase(jCast),
+    title: 'DAY 5 · 불금', set: 'station', cast: castBase(jCast),
     steps: [
-      { who: 'lead', text: '이 선생, 인사해요.' },
-      { who: 'lee', text: '이수아입니다… 잘 부탁드립니다.' },
-      { who: 'boss', text: '사람 늘었으니까 환자 더 받을 수 있지? 하하.' },
-      { who: 'me', text: '(사람이 늘면… 일도 느는 거였구나)' },
+      { who: 'boss', text: '오늘 금요일이라 환자 많을 거야. 다들 각오해.' },
+      { who: 'lead', text: '(김 선생 쪽을 보며) 박 선생이 실수하면 김 선생 책임이에요.' },
+      { who: 'park', text: '서, 선배… 오늘도 잘 부탁드려요!' },
+      { who: 'me', text: '(후배도 챙기고, 환자도 보고… 나는 누가 챙겨 주지?)' },
     ],
   };
-  const pool = [
-    [{ who: 'boss', text: '옆 의원이 수액을 싸게 한다던데… 우리도 회전율 올려야 해.' }, { who: 'lead', text: '네 원장님~ 오늘은 더 빨리 돌릴게요.' }],
-    [{ who: 'lead', text: '어제 화나서 간 환자 있었죠? 오늘은 그런 일 없게 해요.' }, { who: 'me', text: '네… 알겠습니다.' }],
-    [{ who: 'boss', text: '토요일 진료도 해 볼까? …농담이야, 아직은.' }, { who: 'me', text: '(아직은…?)' }],
-  ];
-  const steps = [{ who: 'narr', text: `DAY ${day} · 아침 조회` }, ...pick(pool)];
-  if (Math.random() < 0.5) steps.push({ who: 'boss', text: '아, 김 선생. 출근했으면 몸풀기로 하나 물어보자.' }, { quiz: 'boss', who: 'boss', ok: '오케이. 오늘도 그렇게만 해.', bad: '아침부터 이러면 곤란한데?' });
-  else if (Math.random() < 0.5) steps.push({ who: 'lead', text: '자, 아침 퀴즈. 이것도 모르면 곤란해요.' }, { quiz: 'lead', who: 'lead', ok: '…맞았네요. 오늘도 그렇게 해요.', bad: '하… 기본부터 다시 봐요.' });
-  return { title: `DAY ${day} · 아침 조회`, set: 'station', cast: castBase(jCast), steps };
+  const ep = EPISODES.find((e) => e.id === save.todayEp) || EPISODES[EPISODES.length - 1];
+  const steps = [{ who: 'narr', text: `DAY ${day} · 08:30 아침 조회 — ${ep.title}` }, ...ep.steps];
+  return { title: `DAY ${day} · 08:30 아침 조회`, set: 'station', cast: castBase(jCast), steps };
 }
 function makeCastModel(k, c, doc) {
   if (k === 'boss') return makeDoctor(DOCTORS[0].look);
@@ -2868,29 +2940,30 @@ const hasTask = (kind, pid) => (player.cur && player.cur.a.kind === kind && (pid
 function tutSteps() {
   return [
     { text: '<b>햇살내과의원</b>에 온 걸 환영해요!<br>실제 화면에서 하나씩 따라 해 볼게요.', next: true },
-    { enter: () => { TUT.A = spawnPatient('grandma', { name: '김순자' }); TUT.A.tutOrder = 'shot'; TUT.A.tutMed = 'shotA'; },
+    { text: '머리 위 <b>노란 화살표</b>가 <b>나</b>예요.<br><b>남색 화살표</b>는 <b>한 팀장님</b>. 환자는 안 보고 <b>지시</b>만 해요!', target: () => meArrow, next: true },
+    { enter: () => { TUT.A = spawnPatient('grandma', { name: '김순자' }); TUT.A.tutOrder = 'shot'; },
       text: '환자가 들어와 <b>번호표</b>를 뽑고 앉아요.<br>머리 위 <b>번호</b>를 탭해서 <b>접수</b>하세요.', target: () => tA() && tA().ov,
       wait: () => tA() && (hasTask('register', TUT.A.id) || !['arrive', 'wait'].includes(tA().state)) },
     { watch: true, text: '간호사가 데스크로 뛰어가 접수해요.<br>탭한 일은 아래 <b>할 일</b> 줄에 순서대로 쌓여요.', target: () => $('#queue'),
       wait: () => tA() && tA().state === 'examq' && !tA().busy },
     { watch: true, text: '접수한 순서대로 <b>원장님 진료</b>를 받아요.<br>잠깐 기다려 볼까요?', target: () => tA() && tA().ov, wait: () => tA() && tA().state === 'order' && !tA().path.length },
-    { text: '진료 끝! 머리 위 <b>파란 주사</b> = <b>진통제</b> 처방이에요.<br><b>색깔이 곧 처방</b>이에요.', target: () => tA() && tA().ov, next: true },
+    { text: '진료 끝! 머리 위 <b>주사</b> 아이콘이 <b>처방</b>이에요.<br>환자는 <b>주사실</b>로 가서 기다려요.', target: () => tA() && tA().ov, next: true },
     { text: '<b>약품장</b>을 탭해서 약을 챙기러 가요.', target: () => cabBtn, wait: () => sheetKind === 'cab' },
-    { text: '처방과 같은 <b>진통제(파랑)</b>를 고르세요.', target: () => $('#sheet [data-med="shotA"]'), wait: () => hasTask('prep') || player.hands.includes('shotA') },
-    { watch: true, enter: () => closeSheet('cab'), text: '챙긴 약은 <b>처치 트레이</b>에 담겨요.<br>손은 두 개뿐이라 꼭 필요한 것만!', target: () => $('#tray-slots'), wait: () => player.hands.includes('shotA') },
-    { text: '이제 <b>주사실</b>에 앉은 환자를 탭하세요.', target: () => tA() && tA().ov, wait: () => sheetKind === 'pick' || (tA() && tA().state === 'pay') },
-    { text: '<b>투약 확인!</b> 처방과 같은 색 약을 고르세요.<br>망설이면 첫 번째 약이 자동으로 쓰여요.', target: () => $('#sheet'), wait: () => tA() && tA().state === 'pay' },
+    { text: '<b>주사</b>를 고르세요.', target: () => $('#sheet [data-med="shot"]'), wait: () => hasTask('prep') || player.hands.includes('shot') },
+    { watch: true, enter: () => closeSheet('cab'), text: '챙긴 약은 <b>처치 트레이</b>에 담겨요.<br>손은 두 개뿐이라 꼭 필요한 것만!', target: () => $('#tray-slots'), wait: () => player.hands.includes('shot') },
+    { text: '이제 <b>주사실</b>에 앉은 환자를 탭해서 <b>주사</b>를 놓으세요.', target: () => tA() && tA().ov, wait: () => tA() && tA().state === 'pay' },
     { text: '주사 완료! 처치가 끝난 환자는 다시 <b>접수·수납실</b>에 앉아요.<br>탭해서 <b>수납</b>하세요.', target: () => tA() && tA().ov, wait: () => !tA() },
     { enter: () => { TUT.B = spawnPatient('grandpa', { name: '박영수', state: 'order', order: 'heat' }); },
-      text: '이번엔 <b>핫팩</b> 처방 환자예요.<br>준비물 없이 탭하면 <b>침대로 안내</b>하고 세팅해요.', target: () => tB() && tB().ov, wait: () => tB() && ['bed', 'beddone'].includes(tB().state) },
+      text: '<b>수액·핫팩</b> 처방 환자는 침대로 모셔요. 이번엔 <b>핫팩</b>!<br>준비물 없이 탭하면 <b>침대로 안내</b>하고 세팅해요.', target: () => tB() && tB().ov, wait: () => tB() && ['bed', 'beddone'].includes(tB().state) },
     { text: '핫팩이 끝나면 침대가 <b>빨갛게 깜빡</b>여요.<br>그때 탭해서 <b>정리</b>하세요.', target: () => tB() && tB().ov, wait: () => tB() && (tB().state === 'pay' || hasTask('unbed', TUT.B.id)) },
     { text: '정리한 환자도 <b>수납</b>까지 해야 끝!<br>환자를 탭하세요.', target: () => tB() && tB().ov, wait: () => !tB() },
     { text: '처치할 때마다 <b>기록</b>이 쌓여요.<br>왼쪽 <b>기록</b> 버튼으로 정리하세요. 안 하면 퇴근 후 무급 야근!', target: () => chartBtn, wait: () => S.charts === 0 },
     { enter: () => { S.directive = { kind: 'chore', label: '약품장 재고 정리 좀 해놔요', left: 999, max: 999 }; say(lead, '김 선생, 약품장 재고 정리 좀 해놔요.', 'lead', 3); },
-      text: '팀장님·원장님 <b>지시</b>는 이 줄에 떠요.<br>탭하면 <b>할 일</b>로 내려가요.', target: () => $('#req-row'), wait: () => hasTask('chore') || !S.directive },
+      text: '팀장님은 진료실에서 원장님을 돕다가 돌아다니며 <b>지시</b>를 내려요.<br>지시는 이 줄에 뜨고, 탭하면 <b>할 일</b>로 내려가요.', target: () => $('#req-row'), wait: () => hasTask('chore') || !S.directive },
     { text: '내 몸 상태예요. <b>식사·화장실·체력·멘탈</b>이<br>바닥나면 느려지고 실수가 늘어요.', target: () => $('.vitals'), next: true },
     { text: '오른쪽 <b>화장실·간식</b>으로 회복하세요.<br>단, 팀장님 근처에서 쉬면 혼나요!', target: () => $('#rail-right'), next: true },
     { text: '두 손가락으로 <b>확대·이동</b>, <b>더블탭</b>으로도 확대돼요.<br>환자가 작을 땐 확대해서 탭하세요.', target: () => $('.zoom-ctl'), next: true },
+    { text: '<b>DAY 3</b>엔 후배 박 선생이 와서 일을 나눌 수 있고,<br>매일 <b>08:30 아침 조회</b>에서 그날의 이벤트가 정해져요.', next: true },
     { text: '준비 끝! 이제 진짜 <b>첫 출근</b>을 해 볼까요?<br>모르는 건 언제든 상단 <b>?</b> 버튼에서 볼 수 있어요.', next: true, final: true },
   ];
 }
