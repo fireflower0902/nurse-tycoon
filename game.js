@@ -3,8 +3,8 @@
  * Three.js (CDN importmap), 빌드 없음. 모바일 세로 화면 기준.
  * ========================================================= */
 import * as THREE from 'three';
-import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=16';
-import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=16';
+import { icon, hydrateIcons, EMOJI_ICON } from './icons.js?v=17';
+import { box, cyl, sph, mesh, makeChibi, makeNurse, makeLead, makeDoctor, makePatientModel, heldItemMesh, setPose, animateChibi, CHAR_SCALE } from './models.js?v=17';
 hydrateIcons();
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -1638,13 +1638,13 @@ el.choco.addEventListener('click', () => {
 function updateChocoBtn() { el.chocoCount.textContent = save.choco; }
 
 // ================= 채혈 미니게임 =================
-const blood = { open: false, c: null, p: null, x: 0, dir: 1, speed: 1, zone: [0.4, 0.6] };
+const blood = { open: false, c: null, p: null, x: 0, shownX: 0, dir: 1, speed: 1, zone: [0.4, 0.6], frozen: false };
 function openBlood(c, p) {
-  blood.open = true; blood.c = c; blood.p = p; blood.x = 0; blood.dir = 1;
-  const w = p.vein === 'hard' ? 0.11 : 0.24;
+  blood.open = true; blood.c = c; blood.p = p; blood.x = 0; blood.shownX = 0; blood.dir = 1; blood.frozen = false;
+  const w = p.vein === 'hard' ? 0.13 : 0.24;
   const st = rand(0.15, 0.85 - w);
   blood.zone = [st, st + w];
-  blood.speed = p.vein === 'hard' ? 1.25 : 0.95;
+  blood.speed = p.vein === 'hard' ? 1.1 : 0.85;
   S.modal = true;
   $('#blood-title').textContent = `${p.name}님 채혈`;
   $('#blood-eyebrow').textContent = p.rude ? '채혈 · 진상 주의' : '채혈';
@@ -1654,26 +1654,38 @@ function openBlood(c, p) {
   document.querySelector('.vein').classList.toggle('faint', p.vein === 'hard');
   const z = $('#blood-zone');
   z.style.left = blood.zone[0] * 100 + '%'; z.style.width = w * 100 + '%';
+  z.className = 'zone';
+  $('#blood-needle').className = 'needle';
+  $('#blood-needle').style.left = '0%';
+  $('#btn-blood-stop').disabled = false;
   $('#blood-anger').style.width = clamp((1 - p.patience / p.max) * 100, 0, 100) + '%';
   const msg = $('#blood-msg'); msg.textContent = '바늘이 초록 구간에 들어오면 찌르세요'; msg.className = 'blood-msg';
   $('#screen-blood').classList.remove('hidden');
 }
-function closeBlood() { blood.open = false; S.modal = false; $('#screen-blood').classList.add('hidden'); }
+function closeBlood() { blood.open = false; blood.frozen = false; S.modal = false; $('#screen-blood').classList.add('hidden'); }
 function animateBlood(dt) {
-  if (!blood.open) return;
+  if (!blood.open || blood.frozen) return;
   blood.x += blood.dir * blood.speed * dt;
   if (blood.x >= 1) { blood.x = 1; blood.dir = -1; } else if (blood.x <= 0) { blood.x = 0; blood.dir = 1; }
-  $('#blood-needle').style.left = blood.x * 100 + '%';
+  blood.shownX = blood.x; // 화면에 그려진 위치 = 판정 위치
+  $('#blood-needle').style.left = blood.shownX * 100 + '%';
 }
-$('#btn-blood-stop').addEventListener('click', () => {
-  if (!blood.open) return;
+function stopNeedle(e) {
+  if (e) e.preventDefault();
+  if (!blood.open || blood.frozen) return;
+  blood.frozen = true; // 누른 순간 바로 정지
+  $('#btn-blood-stop').disabled = true;
   const { c, p } = blood;
-  const ok = blood.x >= blood.zone[0] && blood.x <= blood.zone[1];
-  const msg = $('#blood-msg');
+  const x = blood.shownX, tol = 0.012;
+  const ok = x >= blood.zone[0] - tol && x <= blood.zone[1] + tol;
+  blood.lastStop = { x, ok, at: performance.now() };
+  const needle = $('#blood-needle'), zone = $('#blood-zone'), msg = $('#blood-msg');
+  needle.className = 'needle ' + (ok ? 'hit' : 'miss');
+  zone.className = 'zone ' + (ok ? 'hit' : 'miss');
   if (ok) {
     msg.textContent = '성공! 한 번에 들어갔어요'; msg.className = 'blood-msg good';
-    blood.open = false;
-    setTimeout(() => { closeBlood(); if (player.cur === c) { c.phase = 'work'; c.t = 0; c.dur = 0.8; } }, 450);
+    vibrate(40);
+    setTimeout(() => { closeBlood(); if (player.cur === c) { c.phase = 'work'; c.t = 0; c.dur = 0.8; } }, 750);
     return;
   }
   S.stats.bloodFail++;
@@ -1682,18 +1694,25 @@ $('#btn-blood-stop').addEventListener('click', () => {
     S.body.mental -= 8;
     msg.textContent = `실패… ${p.name}님: “아 씨, 몇 번을 찌르는 거야!”`;
   } else {
-    p.patience -= p.max * 0.25;
+    p.patience = Math.max(0, p.patience - p.max * 0.25);
     msg.textContent = '실패… 환자분이 인상을 쓰세요';
   }
   msg.className = 'blood-msg bad';
   $('#blood-anger').style.width = clamp((1 - p.patience / p.max) * 100, 0, 100) + '%';
   vibrate(120);
-  blood.speed *= 1.08;
-  if (false) {
-    blood.open = false;
-    setTimeout(() => { closeBlood(); if (player.cur === c) { player.cur = null; renderQueue(); } p.busy = false; if (S.patients.has(p.id)) leaveAngry(p); }, 600);
-  }
-});
+  // 잠시 멈춘 위치를 보여준 뒤 바늘이 다시 움직임
+  setTimeout(() => {
+    if (!blood.open) return;
+    blood.frozen = false;
+    blood.speed *= 1.06;
+    needle.className = 'needle'; zone.className = 'zone';
+    $('#btn-blood-stop').disabled = false;
+    msg.textContent = '다시 한 번! 초록 구간을 노려요'; msg.className = 'blood-msg';
+  }, 1000);
+}
+const stopBtn = $('#btn-blood-stop');
+stopBtn.addEventListener('pointerdown', stopNeedle);
+stopBtn.addEventListener('click', (e) => e.preventDefault());
 $('#btn-blood-later').addEventListener('click', () => {
   if (!blood.open) return;
   closeBlood();
@@ -3029,6 +3048,7 @@ function updateCoach() {
 // 테스트용 훅
 window.__game = {
   get S() { return S; }, player, get mates() { return mates; }, get lead() { return lead; }, enqueue, onPatientTap, freeBed: (k) => S && freeBed(k), phoneBtn, MEDS,
+  testBlood() { const p = spawnPatient('normal', { state: 'order', order: 'blood' }); openBlood({ a: { pid: p.id } }, p); },
   get pickFn() { return pickFn; }, blood, openCabinet, quiz, CS, answerQuiz, TUT, tA, tB,
   focus(x, z, d = 6, y = 0.8) {
     if (x === undefined) { focusing = false; fitCamera(); ovEl.style.display = ''; return; }

@@ -672,3 +672,15 @@ button.primary.danger { background: #e53935; box-shadow: 0 8px 20px rgba(229,57,
 /* 지도 위 약품장 버튼(작게) */
 .sbtn.mini .pin { width: 30px; height: 30px; font-size: 15px; }
 .sbtn.mini small { font-size: 9px; padding: 1px 6px; }
+
+/* 채혈: 멈춘 바늘 결과 표시 */
+.needle { transition: background .15s; }
+.needle.hit { background: #12a37e; box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 0 12px rgba(18,163,126,.8); }
+.needle.hit::after { border-top-color: #12a37e; }
+.needle.miss { background: #e53935; box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 0 12px rgba(229,57,53,.7); animation: needleShake .3s; }
+.needle.miss::after { border-top-color: #e53935; }
+.zone.hit { background: rgba(53,196,138,.85); }
+.zone.miss { box-shadow: inset 0 0 0 2px rgba(229,57,53,.7); }
+#btn-blood-stop:disabled { opacity: .55; }
+#btn-blood-stop { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+@keyframes needleShake { 25% { margin-left: -5px; } 75% { margin-left: 1px; } }
